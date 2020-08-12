@@ -3,5 +3,5 @@ Cone-plane intersection - as described in "Sensor tilt via conic sections" in IM
 
 
 <center>
-<img src="https://raw.githubusercontent.com/mo-geometry/conic_sections/master/conic_sections.gif" width="linewidth"/>
+<img src="https://github.com/mo-geometry/conic_sections/blob/master/conic_sections.gif" width="linewidth"/>
 </center>
