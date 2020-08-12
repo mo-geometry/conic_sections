@@ -1,4 +1,4 @@
-# Conic sections
+# Conic sections and non-linear maps
 Cone-plane intersection formaulae - as described in "Sensor tilt via conic sections" IMVIP (2020).
 
 <center>
