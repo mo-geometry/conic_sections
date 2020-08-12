@@ -11,16 +11,16 @@ p0 = [tan(beta)*cos(phi),tan(beta)*sin(phi),ones(size(phi))];
 px = p0(:, 1);   py = p0(:, 2);   pz = p0(:, 3);
 % optical axis
 z = [zeros(size(phi)),  zeros(size(phi)),  ones(size(phi))];
-% rotation axis
-aXs = [linspace(-2, 2, n_points)', ...
-       -(nx/ny)*linspace(-2, 2, n_points)', ...
-       ones(size(phi))];
 % iterate plane normal's polar angle in degrees [ 0, ..., 360].
 for theta = 0:6:360 
     % plane normal
     nx = sind(theta)*cosd(psi);
     ny = sind(theta)*sind(psi);
     nz = -cosd(theta);
+    % rotation axis
+    aXs = [linspace(-2, 2, n_points)', ...
+           -(nx/ny)*linspace(-2, 2, n_points)', ...
+           ones(size(phi))];
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% Forward map 
     % lambda scale factor [equation 1] 
