@@ -6,21 +6,21 @@ psi  = 55+180;
 phi = linspace(0,2*pi,n_points)';
 % principle angle (radians)
 beta = 0.9; %(25 + rand(1) * 30) * pi / 180;
+% circle of points at base of cone
+p0 = [tan(beta)*cos(phi),tan(beta)*sin(phi),ones(size(phi))];
+px = p0(:, 1);   py = p0(:, 2);   pz = p0(:, 3);
+% optical axis
+z = [zeros(size(phi)),  zeros(size(phi)),  ones(size(phi))];
+% rotation axis
+aXs = [linspace(-2, 2, n_points)', ...
+       -(nx/ny)*linspace(-2, 2, n_points)', ...
+       ones(size(phi))];
 % iterate plane normal's polar angle in degrees [ 0, ..., 360].
 for theta = 0:6:360 
-    %% Parameters
-    % circle of points at base of cone
-    p0 = [tan(beta)*cos(phi),tan(beta)*sin(phi),ones(size(phi))];
-    px = p0(:, 1);   py = p0(:, 2);   pz = p0(:, 3);
     % plane normal
-    nx = sind(theta)*cosd(psi);ny = sind(theta)*sind(psi);nz = -cosd(theta);
-    n = [sind(theta)*cosd(psi), sind(theta)*sind(psi), -cosd(theta)];
-    % optical axis
-    z = [zeros(size(phi)),  zeros(size(phi)),  ones(size(phi))];
-    % rotation axis
-    aXs = [linspace(-2, 2, n_points)', ...
-           -(nx/ny)*linspace(-2, 2, n_points)', ...
-           ones(size(phi))];
+    nx = sind(theta)*cosd(psi);
+    ny = sind(theta)*sind(psi);
+    nz = -cosd(theta);
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% Forward map 
     % lambda scale factor [equation 1] 
@@ -43,12 +43,11 @@ for theta = 0:6:360
     p0_x = (((nx^2+nz-1)*p1_x + nx*ny*p1_y)./(nx*p1_x+ny*p1_y+1))/(nz-1);
     p0_y = (((ny^2+nz-1)*p1_y + nx*ny*p1_x)./(nx*p1_x+ny*p1_y+1))/(nz-1);
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %% Cone
-    % tilted plane
+    %% Tilted plane
     [plane_x,plane_y] = meshgrid(linspace(-3,3,101),linspace(-3,3,101));
     plane_flat_z = ones(size(plane_x));
     plane_tilt_z = - nx / nz * plane_x - ny / nz * plane_y + ones(size(plane_x));
-    % cone plane intersection
+    % cone plane intersection 3d
     origin = zeros(n_points, 1);
     intersect = ll1.*p0;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
