@@ -1,14 +1,13 @@
 %% Initialize
 n_points = 39;
-% [polar, azim] of the tilt plane normal
-% theta= rand(1) * 30; 
-% psi  = rand(1) * 360;
+% azimuth of the tilt plane normal
 psi  = 55+180;
-for theta = 0:6:360
-    % angle of circle
-    phi = linspace(0,2*pi,n_points)';
-    % principle angle
-    beta = 0.9; %(25 + rand(1) * 30) * pi / 180;
+% angle of circle
+phi = linspace(0,2*pi,n_points)';
+% principle angle (radians)
+beta = 0.9; %(25 + rand(1) * 30) * pi / 180;
+% iterate plane normal's polar angle in degrees [ 0, ..., 360].
+for theta = 0:6:360 
     %% Parameters
     % circle of points at base of cone
     p0 = [tan(beta)*cos(phi),tan(beta)*sin(phi),ones(size(phi))];
@@ -89,30 +88,3 @@ for theta = 0:6:360
     % save png for gif
     % saveas(h,sprintf('makegif/conic%d.png',theta+100));
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-% fprintf('Tilt angle = %d degrees\n',acosd(-nz));
