@@ -33,7 +33,7 @@ The S1 plane is related to the S0 plane via the rodrigues rotation matrix
 ### Vector map:
 
 <center>
-<img src="https://user-images.githubusercontent.com/62537514/90265054-ed186800-de49-11ea-87d7-57760eb35109.png" width="600"/>
+<img src="https://user-images.githubusercontent.com/62537514/90265054-ed186800-de49-11ea-87d7-57760eb35109.png" width="400"/>
 </center>
 
 ### Forward map: circle to (ellipse, parabola, hyperbola)
