@@ -66,7 +66,7 @@ where the scaling factor is the perspective projection:
 <img src="https://user-images.githubusercontent.com/62537514/90265360-6021de80-de4a-11ea-8dbc-502936123830.png" width="296"/>
 </center>
 
-### Conic sections and non-linear maps
+### Non-linear maps
 
 <center>
 <img src="https://user-images.githubusercontent.com/62537514/90268564-1b4c7680-de4f-11ea-92c8-390aedb74b05.png" width="linewidth"/>
