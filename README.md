@@ -2,19 +2,6 @@
 Contains: 
 * Matlab scripts demonstrating the cone-plane intersection formaulae - as described in "Sensor tilt via conic sections" IMVIP (2020).
 
-
-<center>
-<img src="https://github.com/mo-geometry/conic_sections/blob/master/conic_sections.gif" width="linewidth"/>
-</center>
-
-### Non-linear maps
-
-<center>
-<img src="https://user-images.githubusercontent.com/62537514/90269903-49cb5100-de51-11ea-89df-3186035a3bfc.png" width="linewidth"/>
-</center>
-
-### Overview
-
 <center>
 <img src="https://user-images.githubusercontent.com/62537514/90258836-023cc900-de41-11ea-8f7b-cdecd6440604.png" width="linewidth"/>
 </center>
@@ -77,6 +64,18 @@ where the scaling factor is the perspective projection:
 
 <center>
 <img src="https://user-images.githubusercontent.com/62537514/90265360-6021de80-de4a-11ea-8dbc-502936123830.png" width="296"/>
+</center>
+
+### Animation
+
+<center>
+<img src="https://github.com/mo-geometry/conic_sections/blob/master/conic_sections.gif" width="linewidth"/>
+</center>
+
+### Non-linear maps
+
+<center>
+<img src="https://user-images.githubusercontent.com/62537514/90269903-49cb5100-de51-11ea-89df-3186035a3bfc.png" width="linewidth"/>
 </center>
 
 ### References 
