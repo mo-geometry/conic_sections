@@ -26,7 +26,7 @@ The S0 plane intersects the cone to create a circle of points p, with radius r=t
 The S1 plane is related to the S0 plane via the rodrigues rotation matrix
 
 <center>
-<img src="https://user-images.githubusercontent.com/62537514/90264204-a8d89800-de48-11ea-9e5d-2b5c45d15c7f.png" width="500"/>
+<img src="https://user-images.githubusercontent.com/62537514/90264204-a8d89800-de48-11ea-9e5d-2b5c45d15c7f.png" width="350"/>
 </center>
 
 ### Vector map:
@@ -56,19 +56,18 @@ To perform the rotation around the projective plane origin, the points are first
 The mapping from the conic p′ to the circle p is obtained by first shifting the points to the coordinate origin, performing the inverse rotation, shifting back, and then rescaling through division by the z component.
 
 <center>
-<img src="https://user-images.githubusercontent.com/62537514/90265348-5dbf8480-de4a-11ea-9911-5c73f5643dbd.png" width="250"/>
+<img src="https://user-images.githubusercontent.com/62537514/90265348-5dbf8480-de4a-11ea-9911-5c73f5643dbd.png" width="280"/>
 </center>
 
 where the scaling factor is the perspective projection:
 
 <center>
-<img src="https://user-images.githubusercontent.com/62537514/90265360-6021de80-de4a-11ea-8dbc-502936123830.png" width="266"/>
+<img src="https://user-images.githubusercontent.com/62537514/90265360-6021de80-de4a-11ea-8dbc-502936123830.png" width="296"/>
 </center>
 
 A circle p, is mapped to the conic p', as a function of the unit normal n to the intersecting plane, via:
-
 <center>
-<img src="https://user-images.githubusercontent.com/62537514/90266794-77fa6200-de4c-11ea-8b89-72ec8ec3c537.png" width="600"/>
+<img src="https://user-images.githubusercontent.com/62537514/90267439-72514c00-de4d-11ea-854e-e2a5e59a22ec.png" width="linewidth"/>
 </center>
 
 ### Animation
