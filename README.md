@@ -69,7 +69,7 @@ where the scaling factor is the perspective projection:
 ### Non-linear maps
 
 <center>
-<img src="https://user-images.githubusercontent.com/62537514/90268704-5484e680-de4f-11ea-87b8-cfd42e33e18d.png" width="linewidth"/>
+<img src="https://user-images.githubusercontent.com/62537514/90269903-49cb5100-de51-11ea-89df-3186035a3bfc.png" width="linewidth"/>
 </center>
 
 ### Animation
