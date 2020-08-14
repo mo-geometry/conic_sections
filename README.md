@@ -38,9 +38,9 @@ The S1 plane is related to the S0 plane via the rodrigues rotation matrix
 
 ### Forward map: circle to (ellipse, parabola, hyperbola)
 
-The projected point forms a vector λp touching the tilted plane S1, and connecting with the vector q in the local coordinates of S1. 
+The projected point p forms a vector λp touching the tilted plane S1, and connecting with the vector q in the local coordinates of S1. 
 
-Taking the dot product of both sides of this vector equation, with the unit normal n, we arrive at an expression for the scaling factor λ (since n·q=0),
+Taking the dot product of both sides of this vector equation, with the unit normal n, we arrive at an expression for the scaling factor λ,
 
 <center>
 <img src="https://user-images.githubusercontent.com/62537514/90264530-23a1b300-de49-11ea-9ebf-5a5a9f768905.png" width="linewidth"/>
