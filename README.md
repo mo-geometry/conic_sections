@@ -69,7 +69,7 @@ where the scaling factor is the perspective projection:
 ### Conic sections and non-linear maps
 
 <center>
-<img src="https://user-images.githubusercontent.com/62537514/90267865-0c18f900-de4e-11ea-9c3b-d8864127a64d.png" width="linewidth"/>
+<img src="https://user-images.githubusercontent.com/62537514/90268564-1b4c7680-de4f-11ea-92c8-390aedb74b05.png" width="linewidth"/>
 </center>
 
 ### Animation
