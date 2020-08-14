@@ -67,7 +67,7 @@ where the scaling factor is the perspective projection:
 
 A circle p, is mapped to the conic p', as a function of the unit normal n to the intersecting plane, via:
 <center>
-<img src="https://user-images.githubusercontent.com/62537514/90267439-72514c00-de4d-11ea-854e-e2a5e59a22ec.png" width="linewidth"/>
+<img src="https://user-images.githubusercontent.com/62537514/90267865-0c18f900-de4e-11ea-9c3b-d8864127a64d.png" width="linewidth"/>
 </center>
 
 ### Animation
