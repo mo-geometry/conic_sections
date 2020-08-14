@@ -7,6 +7,12 @@ Contains:
 <img src="https://github.com/mo-geometry/conic_sections/blob/master/conic_sections.gif" width="linewidth"/>
 </center>
 
+### Non-linear maps
+
+<center>
+<img src="https://user-images.githubusercontent.com/62537514/90269903-49cb5100-de51-11ea-89df-3186035a3bfc.png" width="linewidth"/>
+</center>
+
 ### Overview
 
 <center>
@@ -71,12 +77,6 @@ where the scaling factor is the perspective projection:
 
 <center>
 <img src="https://user-images.githubusercontent.com/62537514/90265360-6021de80-de4a-11ea-8dbc-502936123830.png" width="296"/>
-</center>
-
-### Non-linear maps
-
-<center>
-<img src="https://user-images.githubusercontent.com/62537514/90269903-49cb5100-de51-11ea-89df-3186035a3bfc.png" width="linewidth"/>
 </center>
 
 ### References 
