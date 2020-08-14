@@ -14,6 +14,13 @@ The apex of the cone is at (0,0,0).
 * S0 (flat plane): unit normal parallel to the z-axis
 * S1 (tilted plane): unit normal n = (nx, ny, nz)
 ```
+
+### Vector map:
+
+<center>
+<img src="https://user-images.githubusercontent.com/62537514/90265054-ed186800-de49-11ea-87d7-57760eb35109.png" width="400"/>
+</center>
+
 <center>
 <img src="https://user-images.githubusercontent.com/62537514/90262577-61e9a300-de46-11ea-9475-925b545b7114.png" width="200"/>
 </center>
@@ -28,12 +35,6 @@ The S1 plane is related to the S0 plane via the rodrigues rotation matrix
 
 <center>
 <img src="https://user-images.githubusercontent.com/62537514/90264204-a8d89800-de48-11ea-9e5d-2b5c45d15c7f.png" width="350"/>
-</center>
-
-### Vector map:
-
-<center>
-<img src="https://user-images.githubusercontent.com/62537514/90265054-ed186800-de49-11ea-87d7-57760eb35109.png" width="400"/>
 </center>
 
 ### Forward map: circle to (ellipse, parabola, hyperbola)
