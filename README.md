@@ -1,5 +1,6 @@
 # Conic sections and non-linear maps
-Cone-plane intersection formaulae - as described in "Sensor tilt via conic sections" IMVIP (2020).
+Contains: 
+* Matlab scripts demonstrating the cone-plane intersection formaulae - as described in "Sensor tilt via conic sections" IMVIP (2020).
 
 <center>
 <img src="https://user-images.githubusercontent.com/62537514/90258836-023cc900-de41-11ea-8f7b-cdecd6440604.png" width="linewidth"/>
