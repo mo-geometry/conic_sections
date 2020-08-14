@@ -15,14 +15,14 @@ The apex of the cone is at (0,0,0).
 * S1 (tilted plane): unit normal n = (nx, ny, nz)
 ```
 
+<center>
+<img src="https://user-images.githubusercontent.com/62537514/90262577-61e9a300-de46-11ea-9475-925b545b7114.png" width="200"/>
+</center>
+
 ### Vector map:
 
 <center>
 <img src="https://user-images.githubusercontent.com/62537514/90265054-ed186800-de49-11ea-87d7-57760eb35109.png" width="400"/>
-</center>
-
-<center>
-<img src="https://user-images.githubusercontent.com/62537514/90262577-61e9a300-de46-11ea-9475-925b545b7114.png" width="200"/>
 </center>
 
 The S0 plane intersects the cone to create a circle of points p, with radius r=tanβ:
