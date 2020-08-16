@@ -12,6 +12,10 @@ Contains:
 <img src="https://user-images.githubusercontent.com/62537514/90269903-49cb5100-de51-11ea-89df-3186035a3bfc.png" width="linewidth"/>
 </center>
 
+```
+circle → ellipse → parabola → hyperbola                                   
+```
+
 ### About:
 
 <center>
