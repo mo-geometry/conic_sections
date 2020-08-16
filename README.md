@@ -1,5 +1,5 @@
 # Conic sections and non-linear maps
-Contains: 
+
 * Matlab scripts demonstrating the cone-plane intersection formaulae - as described in "Sensor tilt via conic sections" IMVIP (2020).
 
 <center>
@@ -13,7 +13,7 @@ Contains:
 </center>
 
 ```
-circle → ellipse → parabola → hyperbola                                   
+circle → ellipse → parabola → hyperbola
 ```
 
 ### About:
