@@ -16,7 +16,7 @@
 circle → ellipse → parabola → hyperbola
 ```
 
-### About:
+### Conic sections:
 
 <center>
 <img src="https://user-images.githubusercontent.com/62537514/90258836-023cc900-de41-11ea-8f7b-cdecd6440604.png" width="linewidth"/>
