@@ -7,21 +7,9 @@
 </center>
 
 ### Non-linear maps:
-
-<center>
-<img src="https://user-images.githubusercontent.com/62537514/90269903-49cb5100-de51-11ea-89df-3186035a3bfc.png" width="linewidth"/>
-</center>
-
 ```
 circle → ellipse → parabola → hyperbola
 ```
-
-### Conic sections:
-
-<center>
-<img src="https://user-images.githubusercontent.com/62537514/90258836-023cc900-de41-11ea-8f7b-cdecd6440604.png" width="linewidth"/>
-</center>
-
 A cone of principle angle β is intersected by 2 planes S0 and S1, which share a common origin at (x,y,z)=(0,0,1). 
 
 The apex of the cone is at (0,0,0). 
