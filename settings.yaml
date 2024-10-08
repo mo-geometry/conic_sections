@@ -1,0 +1,86 @@
+# EXTRINSICS: default (xyz) world coordinates of object center
+position:
+  x: 0
+  y: 0
+  z: 175
+#  z: 324
+
+# EXTRINSICS: default (roll pitch yaw) world coordinates of object center
+euler:
+  roll: 0
+  pitch: 0
+  yaw: 0
+
+# EXTRINSICS: default axis-angle world coordinates of object center
+axis-angle:
+  field_angle: 0
+  azimuth: 0
+  rotation: 0
+
+# EXTRINSICS: Roll Pitch Yaw conventions
+rpy_convention: [roll-pitch-yaw, roll-yaw-pitch, pitch-yaw-roll, pitch-roll-yaw, yaw-roll-pitch, yaw-pitch-roll]
+
+# INTRINSICS: Camera Matrix
+camera_matrix:
+  focal_length: 460.568
+  dX: 2.461
+  dY: -1.356
+  yx_aspect_ratio: 1.01
+
+# INTRINSICS: Lens distortion
+lens_distortion: [Equidistant, Equisolid, Orthographic, Stereographic, Polynomial]
+
+# INTRINSICS: Polynomial lens distortion coefficients (theta in radians)
+# r_mm = 1.0 * theta + k2 * theta^2 + k3 * theta^3 + k4 * theta^4
+# r_pixels = focal_length_pixels * r_mm
+polynomial_distortion:
+    k2: 0.015703
+    k3: -0.018452
+    k4: 0.027853
+#    k2: 0.696454
+#    k3: -0.864578
+#    k4: 0.277073
+
+# INTRINSICS: Sensor properties
+sensor:
+  width: 1280
+  height: 960
+  tilt_angle: 0
+  tilt_azimuth: 0
+
+# REMAPPING:
+re-projection:
+  type: [None, Rectilinear, Curvilinear, Spherical]
+  mode: [Show, Apply]
+  grid_xy: [18, 12]
+  zoom: 1.0
+
+# Real World Image Properties
+real_world_image_width_mm: 500
+
+# CHARUCO BOARD SETTINGS
+charuco:
+    squares_x: 18
+    squares_y: 12
+    square_length_mm: 25
+    marker_length_mm: 20
+    target_3d: False
+    ground_truth: False
+    dictionary: [ DICT_4X4_1000, DICT_5X5_1000, DICT_6X6_1000, DICT_7X7_1000, DICT_APRILTAG_36h10, DICT_APRILTAG_36h11 ]
+#    dictionary: [ DICT_4X4_50, DICT_4X4_100, DICT_4X4_250, DICT_4X4_1000, DICT_5X5_50, DICT_5X5_100,
+#                  DICT_5X5_250, DICT_5X5_1000, DICT_6X6_50, DICT_6X6_100, DICT_6X6_250, DICT_6X6_1000,
+#                  DICT_7X7_50, DICT_7X7_100, DICT_7X7_250, DICT_7X7_1000, DICT_ARUCO_ORIGINAL, DICT_APRILTAG_16h5,
+#                  DICT_APRILTAG_25h9, DICT_APRILTAG_36h10, DICT_APRILTAG_36h11 ]
+    crop_white_space: True
+    print_charuco: True
+
+image_lens_grid:
+    grid_xy: [6, 6]
+    show_on_image: True
+
+# CALIBRATION DEBUG
+stage_images: True
+use_image_center: False
+
+# IMAGE DISPLAY SETTINGS
+mirror_flip_options: ['upright', 'mirror', 'flip', 'mirror&flip']
