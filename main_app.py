@@ -159,8 +159,8 @@ class App(ctk.CTk):
                          'lens_distortion': ctk.StringVar(value=settings['lens_distortion'][-1]),
                          'width': ctk.DoubleVar(value=settings['sensor']['width']),
                          'height': ctk.DoubleVar(value=settings['sensor']['height']),
-                         'tilt_angle': ThrottledVar(ctk.DoubleVar(value=settings['sensor']['tilt_angle']), 0.1),
-                         'tilt_azimuth': ThrottledVar(ctk.DoubleVar(value=settings['sensor']['tilt_azimuth']), 0.1),
+                         'tilt_angle': ThrottledVar(ctk.DoubleVar(value=settings['sensor']['tilt_angle']), 0.5),
+                         'tilt_azimuth': ThrottledVar(ctk.DoubleVar(value=settings['sensor']['tilt_azimuth']), 0.5),
                          're-projection_type': ctk.StringVar(value=settings['re-projection']['type'][0]),
                          're-projection_mode': ctk.StringVar(value=settings['re-projection']['mode'][0])}
         # calibration variables
@@ -249,14 +249,15 @@ class App(ctk.CTk):
 
     def import_image(self, path):
         self.opencv_image = cv2.imread(path)[:, :, ::-1]
-        if max(self.opencv_image.shape) > 10 ** 3:
-            h, w = self.opencv_image.shape[0], self.opencv_image.shape[1]
-            m = np.round(max(h, w) / 960, 3)
-            self.opencv_image = cv2.resize(self.opencv_image, (int(w / m), int(h / m)),
-                                           interpolation=cv2.INTER_LINEAR)
+        # if max(self.opencv_image.shape) > 10 ** 3:
+        #     h, w = self.opencv_image.shape[0], self.opencv_image.shape[1]
+        #     m = np.round(max(h, w) / 960, 3)
+        #     self.opencv_image = cv2.resize(self.opencv_image, (int(w / m), int(h / m)),
+        #                                    interpolation=cv2.INTER_LINEAR)
         self.original = Image.fromarray(self.opencv_image)
         self.image = {'Image': self.original.copy(),
-                      '3D World': Image.open(os.path.join('images', 'broskow.jpeg')),
+                      # '3D World': Image.open(os.path.join('images', 'broskow.jpeg')),
+                      '3D World': self.original.copy(),
                       'Virtual Camera': Image.fromarray(self.virtual_camera(self.opencv_image))}
         self.image_ratio = {'Image': self.image['Image'].size[0] / self.image['Image'].size[1],
                             '3D World': self.image['3D World'].size[0] / self.image['3D World'].size[1],
