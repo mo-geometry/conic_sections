@@ -42,14 +42,8 @@ This project demonstrates the intersection of conic sections and non-linear maps
 
 4. **Manipulate Image**: Use the provided tools to manipulate the image and visualize the results.
 
-## Project Structure
-
-- `main_app.py`: Main application file.
-- `app/`: Contains the application modules and resources.
-- `modules/`: Contains the core modules for camera, world, photon, etc.
-- `images/`: Directory for storing images used in the application.
 
 ## References
-
+- GUI is based on the image viewer by ["@ClearCode"](https://youtu.be/mop6g-c5HEY?t=55983)
 - B. O'Sullivan and P. Stec, "Sensor tilt via conic sections" IMVIP pages 141-144 (2020).
 - P. Stec and B. O'Sullivan, ["Method for compensating for the off axis tilting of a lens"](https://patents.google.com/patent/US10356346) United States patent number: 10,356,346 B1, July (2019).
