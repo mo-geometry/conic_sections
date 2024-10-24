@@ -1,17 +1,15 @@
 import numpy as np
-from numpy.linalg import inv
 import cv2
 from cv2 import aruco
 import tkinter.messagebox as messagebox
 from fractions import Fraction
-import logging
+from packaging import version  # Installed with setuptools, so should already be installed in your env.
 
-
+# CONSTANTS ############################################################################################################
 # ChAruco board variables
 SQUARE_LENGTH = 1.0
 MARKER_LENGTH = 0.8  # value < 1.0
 BOARD_RESOLUTION = 2500
-
 
 class CHARUCO:
     # constructor
@@ -33,7 +31,13 @@ class CHARUCO:
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.00001)
         # DETECT POINTS
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        corners, ids, rejectedImgPoints = cv2.aruco.detectMarkers(gray, aruco_dict)
+
+        if version.parse(cv2.__version__) >= version.parse("4.7.0"):
+            detector = cv2.aruco.ArucoDetector(aruco_dict, cv2.aruco.DetectorParameters())
+            corners, ids, _ = detector.detectMarkers(gray)
+        else:
+            corners, ids, _ = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=cv2.aruco.DetectorParameters_create())
+        # corners, ids, rejectedImgPoints = cv2.aruco.detectMarkers(gray, aruco_dict)
         all_corners, all_ids = [], []
         if len(corners) > 0:
             # SUB PIXEL DETECTION

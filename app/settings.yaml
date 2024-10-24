@@ -7,14 +7,17 @@ position:
 
 # EXTRINSICS: default (roll pitch yaw) world coordinates of object center
 euler:
+#  roll: -19.1
+#  pitch: 23.8
+#  yaw: -22.6
   roll: 0
   pitch: 0
   yaw: 0
 
 # EXTRINSICS: default axis-angle world coordinates of object center
 axis-angle:
-  field_angle: 0
-  azimuth: 0
+  field_angle: 30.5
+  azimuth: -89.3
   rotation: 0
 
 # EXTRINSICS: Roll Pitch Yaw conventions
@@ -25,7 +28,7 @@ camera_matrix:
   focal_length: 460.568
   dX: 2.461
   dY: -1.356
-  yx_aspect_ratio: 1.01
+  yx_aspect_ratio: 1.0
 
 # INTRINSICS: Lens distortion
 lens_distortion: [Equidistant, Equisolid, Orthographic, Stereographic, Polynomial]
@@ -53,7 +56,8 @@ re-projection:
   type: [None, Rectilinear, Curvilinear, Spherical]
   mode: [Show, Apply]
   grid_xy: [18, 12]
-  zoom: 1.0
+  zoom_rectilinear: 1.0
+  zoom_cylindrical: 1.2
 
 # Real World Image Properties
 real_world_image_width_mm: 500
@@ -80,7 +84,8 @@ image_lens_grid:
 
 # CALIBRATION DEBUG
 stage_images: True
-use_image_center: False
+stage_images_to_video: True
+use_image_center: True
 
 # IMAGE DISPLAY SETTINGS
 mirror_flip_options: ['upright', 'mirror', 'flip', 'mirror&flip']

@@ -79,8 +79,8 @@ class App(ctk.CTk):
         # Initialize the position of the image on the canvas
         self.image_position = {'Image': (0, 0), '3D World': (0, 0)}
 
-        # auto open broskow
-        # self.import_image(os.path.join(os.getcwd(), 'images', 'broskow.jpeg'))
+        # auto open image
+        # self.import_image(os.path.join(os.getcwd(), 'image.jpg'))
 
         # run
         self.mainloop()
@@ -143,12 +143,12 @@ class App(ctk.CTk):
         self.ext_vars = {'x': ctk.StringVar(value=settings['position']['x']),
                          'y': ctk.StringVar(value=settings['position']['y']),
                          'z': ctk.StringVar(value=settings['position']['z']),
-                         'roll': ThrottledVar(ctk.DoubleVar(value=settings['euler']['roll']), 0.1),
-                         'pitch': ThrottledVar(ctk.DoubleVar(value=settings['euler']['pitch']), 0.1),
-                         'yaw': ThrottledVar(ctk.DoubleVar(value=settings['euler']['yaw']), 0.1),
+                         'roll': ctk.DoubleVar(value=settings['euler']['roll']),
+                         'pitch': ctk.DoubleVar(value=settings['euler']['pitch']),
+                         'yaw': ctk.DoubleVar(value=settings['euler']['yaw']),
                          'field_angle': ctk.DoubleVar(value=settings['axis-angle']['field_angle']),
-                         'azimuth': ThrottledVar(ctk.DoubleVar(value=settings['axis-angle']['azimuth']), 0.1),
-                         'rotation': ThrottledVar(ctk.DoubleVar(value=settings['axis-angle']['rotation']), 0.1),
+                         'azimuth': ctk.DoubleVar(value=settings['axis-angle']['azimuth']),
+                         'rotation': ctk.DoubleVar(value=settings['axis-angle']['rotation']),
                          'rpy_convention': ctk.StringVar(value=settings['rpy_convention'][0])
                          }
         # intrinsics variables
@@ -159,8 +159,8 @@ class App(ctk.CTk):
                          'lens_distortion': ctk.StringVar(value=settings['lens_distortion'][-1]),
                          'width': ctk.DoubleVar(value=settings['sensor']['width']),
                          'height': ctk.DoubleVar(value=settings['sensor']['height']),
-                         'tilt_angle': ThrottledVar(ctk.DoubleVar(value=settings['sensor']['tilt_angle']), 0.5),
-                         'tilt_azimuth': ThrottledVar(ctk.DoubleVar(value=settings['sensor']['tilt_azimuth']), 0.5),
+                         'tilt_angle': ctk.DoubleVar(value=settings['sensor']['tilt_angle']),
+                         'tilt_azimuth': ctk.DoubleVar(value=settings['sensor']['tilt_azimuth']),
                          're-projection_type': ctk.StringVar(value=settings['re-projection']['type'][0]),
                          're-projection_mode': ctk.StringVar(value=settings['re-projection']['mode'][0])}
         # calibration variables
@@ -195,11 +195,14 @@ class App(ctk.CTk):
         self.prev_ext_vars = {var_name: var.get() for var_name, var in self.ext_vars.items()}
 
     def manipulate_virtual_camera(self, *args, int_vars_changed=False, ext_vars_changed=False):
+        print('manipulate camera')
         current_tab = self.image_output.get()
         for var_name, var in self.int_vars.items():
             if self.prev_int_vars[var_name] != var.get():
                 # print(f"The value of {var_name} in int_vars has changed to {var.get()}")
                 int_vars_changed = True
+                # register clock time
+
                 self.camera.initialize_intrinsics()
                 # intrinsics change update background
                 if np.logical_or(var_name != 're-projection_type', var_name != 're-projection_mode'):
@@ -218,12 +221,12 @@ class App(ctk.CTk):
                 if current_tab == '3D World':
                     self.plotting.update_figure()
         if int_vars_changed:
-            self.prev_int_vars = {var_name: var.get() for var_name, var in self.int_vars.items()}
+            self.prev_int_vars = {var_name: copy.deepcopy(var.get()) for var_name, var in self.int_vars.items()}
         if ext_vars_changed:
-            self.prev_ext_vars = {var_name: var.get() for var_name, var in self.ext_vars.items()}
+            self.prev_ext_vars = {var_name: copy.deepcopy(var.get()) for var_name, var in self.ext_vars.items()}
         if current_tab == '3D World':
-            self.prev_ext_vars = {var_name: var.get() for var_name, var in self.ext_vars.items()}
-            self.prev_int_vars = {var_name: var.get() for var_name, var in self.int_vars.items()}
+            self.prev_ext_vars = {var_name: copy.deepcopy(var.get()) for var_name, var in self.ext_vars.items()}
+            self.prev_int_vars = {var_name: copy.deepcopy(var.get()) for var_name, var in self.int_vars.items()}
 
         self.place_image(current_tab)
 

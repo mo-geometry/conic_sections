@@ -4,11 +4,12 @@ from collections import OrderedDict
 import sys
 import copy
 from cv2 import circle, imwrite, putText, FONT_HERSHEY_COMPLEX, getTextSize, rectangle
+from cv2 import resize, VideoWriter, VideoWriter_fourcc
 import os
 from shutil import rmtree
 import tkinter.messagebox as messagebox
 import tkinter as tk
-from tkinter import Toplevel, Text, Scrollbar, ttk
+from tkinter import Toplevel, Text, ttk
 
 
 class CALIBRATE:
@@ -17,8 +18,8 @@ class CALIBRATE:
         self.parent = parent[0]
         self.camera_model = {}
         self.xy1_projected = {}
-        self.stage_ctr = 0
-        self.eta_ground_truth = None
+        self.stage_ctr, self.calibration_stage_images = 0, []
+        self.eta_ground_truth, self.eta = None, None
 
     # FUNCTIONS ########################################################################################################
 
@@ -35,10 +36,12 @@ class CALIBRATE:
         self.update_camera_model()
         # project camera model
         self.project_camera_model()
-        # update objective function
-        self.update_objective_function()
         # update the Jacobian
         self.update_jacobian()
+        # update objective function
+        self.update_objective_function()
+        # print stage image
+        self.print_stage_images(reset=True)
 
     @staticmethod
     def write_reprojected_to_image(image, all_corners):
@@ -64,11 +67,19 @@ class CALIBRATE:
         elif not os.path.exists(directory):
             os.makedirs(directory)
 
-    def print_stage_images(self):
-        if not self.parent.cali_vars['stage_images'].get():
+    def print_stage_images(self, downsample=True, reset=False):
+        if np.logical_and(not self.parent.default_settings['stage_images'],
+                          not self.parent.default_settings['stage_images_to_video']):
             return
+        if reset:
+            self.stage_ctr = 0
+            self.calibration_stage_images = []
+            self.create_directory('stage_images', delete_dir=True)
         self.stage_ctr = self.stage_ctr + 1
+        first_image = False
         for image_name, image_tag in zip(self.calibration_images, self.xy1_projected):
+            if first_image:
+                break
             image = copy.deepcopy(self.calibration_images[image_name])
             points_xy = np.concatenate([self.xy1_projected[image_tag][p] for p in list(self.xy1_projected[image_tag])])
             # write projected points
@@ -97,14 +108,21 @@ class CALIBRATE:
 
             # save stage image
             file_name = f"{image_name}_{self.stage_ctr:03}.png"
-            self.save_stage_image(image, file_name)
+
+            # downsample image
+            if downsample:
+                image = resize(image, (0, 0), fx=0.5, fy=0.5)
+
+            # append to images list
+            self.calibration_stage_images.append(image)
+
+            # print image
+            if self.parent.default_settings['stage_images']:
+                self.save_stage_image(image, file_name)
+            first_image = True
 
     def do_camera_calibration(self, detected_points_2d=None, ground_truth_points_2d=None,
                               initial_positions_3d=None, use_ground_truth_points=False):
-        # output folder for stage images
-        if self.parent.cali_vars['stage_images'].get():
-            # print reprojections to images
-            self.create_directory('stage_images', delete_dir=True)
         # calibration settings
         self.use_img_ctr = self.parent.cali_vars['use_image_center'].get()
         self.use_ground_truth_points = use_ground_truth_points
@@ -119,7 +137,15 @@ class CALIBRATE:
             self.initialization()
             self.print_stage_images()
             # Gauss-Newton optimization
-            self.gauss_newton()
+            eta_vec_min = self.gauss_newton()
+            # update eta
+            self.update_optimization(eta_vec_min, mask_max_errors=True)
+            # print stage image
+            self.print_stage_images()
+            # print to user
+            self.results_to_messagebox()
+            # write frames to video
+            self.write_frames_to_video()
         except np.linalg.LinAlgError as e:
             messagebox.showerror("Optimization Error", f"Matrix inversion failed: {e}")
         except ValueError as e:
@@ -137,19 +163,31 @@ class CALIBRATE:
         for key, counter in zip(self.eta.keys(), range(len(eta_vec))):
             self.eta[key] = copy.deepcopy(eta_vec[counter][0])
 
-    def gauss_newton(self, alpha=0.45, trigger=500):
+    def update_optimization(self, eta_vec, mask_max_errors=False):
+        # update eta
+        self.update_eta(eta_vec)
+        # update camera model
+        self.update_camera_model()
+        # project camera model
+        self.project_camera_model()
+        # update the Jacobian
+        self.update_jacobian(mask_max_errors=mask_max_errors)
+        # update objective function
+        self.update_objective_function()
+
+    def gauss_newton(self, alpha=0.40, trigger=500, mask_max_errors=False):
         # initialize
         max_iter, iter_ctr, tol, obj, obj_prev = 999, 0, 1e-7, 1e9, 1e9
         tol = 1e-16 if self.use_ground_truth_points else tol
         max_iter = 2222 if self.use_ground_truth_points else max_iter
         eta_vec_init = np.array(list(self.eta.values())).reshape(-1, 1)
+        lm = np.eye(eta_vec_init.shape[0]) * 1e-12  # regularization
         # iterate
         while iter_ctr < max_iter:
             if self.objective_function < trigger:
                 alpha = 1.0 - 0.5 * ((max_iter - iter_ctr) / max_iter) ** 2
             eta_vec = np.array(list(self.eta.values())).reshape(-1, 1)
             # optimize gauss newton
-            lm = np.eye(eta_vec.shape[0]) * 1e-12  # regularization
             try:
                 inv_JtJ = inv(np.matmul(self.J.T, self.J) + lm)
             except np.linalg.LinAlgError as e:
@@ -161,17 +199,7 @@ class CALIBRATE:
             # low pass filter
             eta_vec_low_pass = alpha * eta_vec + (1.0 - alpha) * eta_vec_1
             # update eta
-            self.update_eta(eta_vec_low_pass)
-            # update camera model
-            self.update_camera_model()
-            # project camera model
-            self.project_camera_model()
-            # update objective function
-            self.update_objective_function()
-            # update the Jacobian
-            self.update_jacobian()
-            # update counter
-            iter_ctr += 1
+            self.update_optimization(eta_vec_low_pass, mask_max_errors=mask_max_errors)
             # check convergence
             if obj > self.objective_function:
                 obj = copy.deepcopy(self.objective_function)
@@ -179,28 +207,38 @@ class CALIBRATE:
                 # output to user
                 sys.stdout.write("\r" + f"min value objective function = {obj:.9f}, alpha = {alpha:.3f}")
             # print stage image
-            if self.objective_function > 250:
+            if self.objective_function > trigger / 2:
                 self.print_stage_images()
             elif iter_ctr % 100 == 0:
                 self.print_stage_images()
             # check convergence
             if abs(obj_prev - self.objective_function) < tol:
                 break
+            elif abs(obj_prev - self.objective_function) < 1:
+                mask_max_errors = True
             obj_prev = copy.deepcopy(self.objective_function)
-        # update eta
-        self.update_eta(eta_vec_min)
-        # update camera model
-        self.update_camera_model()
-        # project camera model
-        self.project_camera_model()
-        # update objective function
-        self.update_objective_function()
-        # print stage image
-        self.print_stage_images()
-        # print to user
-        self.results_to_messagebox()
+            # update counter
+            iter_ctr += 1
+        return eta_vec_min
 
-    def results_to_messagebox(self, lines=[]):
+    def write_frames_to_video(self, fps=10):
+        h, w = self.calibration_stage_images[0].shape[:2]
+        # save video
+        if self.parent.default_settings['stage_images_to_video']:
+            file_name = f"{'calibration_optimization.mp4'}"
+            # check if file exists
+            if os.path.exists(file_name):
+                os.remove(file_name)
+            out = VideoWriter(file_name, VideoWriter_fourcc(*'DIVX'), fps, (w, h))
+            for frame in self.calibration_stage_images:
+                out.write(frame)
+            # repeat last frame x7
+            for _ in range(7):
+                out.write(frame)
+            out.release()
+
+    def results_to_messagebox(self, ):
+        lines = []
         if self.virtual_camera:
             lines.append('Calibration Results Versus Ground Truth')
             lines.append('---------------------------------------')
@@ -309,7 +347,7 @@ class CALIBRATE:
     def return_eta_vector(self):
         return np.array(list(self.eta.values()))
 
-    def update_jacobian(self, index_0=0, eTan=1e-6):
+    def update_jacobian(self, index_0=0, eTan=1e-6, gaussian_mask=False, mask_max_errors=False, error_threshold=0.5):
         # projected points
         xy_projected = self.unpack_dictionary(self.xy1_projected)[:, :2]
         # detected points
@@ -386,7 +424,7 @@ class CALIBRATE:
                 d3, d4 = np.abs(xy1_dyaw - xy1_dyawb).max(), np.abs(xy1_dtX - xy1_dtXb).max()
                 d5, d6 = np.abs(xy1_dtY - xy1_dtYb).max(), np.abs(xy1_dtZ - xy1_dtZb).max()
                 if d1 > eTan or d2 > eTan or d3 > eTan or d4 > eTan or d5 > eTan or d6 > eTan:
-                    print("Arctan error: %.12f" %np.max([d1, d2, d3, d4, d5, d6]) + "\n")
+                    print("Arctan error: %.12f" % np.max([d1, d2, d3, d4, d5, d6]) + "\n")
                 # camera coordinates
                 xy1_droll = np.matmul(self.camera_model['K'], xy1_droll.T).T
                 xy1_dpitch = np.matmul(self.camera_model['K'], xy1_dpitch.T).T
@@ -413,6 +451,20 @@ class CALIBRATE:
                 J['_'.join([image_label, panel])] = columns
         # Jacobian
         self.J = np.concatenate(list(J.values()), axis=1)
+        # distance vector
+        self.D = ((delta ** 2).sum(axis=1) * 0.5).reshape(-1, 1)
+        if gaussian_mask:
+            dist = xy_detected - np.array([self.camera_model['K'][0, -1], self.camera_model['K'][1, -1]]).reshape(1, -1)
+            dist = np.linalg.norm(dist, axis=1)
+            dist = dist / dist.max()
+            dist = np.exp(np.sqrt(dist)).reshape(-1, 1)
+            # dist = np.exp(1 / dist).reshape(-1, 1)
+            self.D = self.D * dist
+            self.J = self.J * dist
+        if mask_max_errors:
+            mask = (delta ** 2).sum(axis=1) < error_threshold
+            self.D = self.D[mask]
+            self.J = self.J[mask, :]
 
     def apply_lens_distortion_extrinsics_dX(self, P, dP):
         k2, k3, k4 = self.camera_model['kappa'][0], self.camera_model['kappa'][1], self.camera_model['kappa'][2]
@@ -500,12 +552,6 @@ class CALIBRATE:
         return np.concatenate(_data_points_)
 
     def update_objective_function(self):
-        # projected points
-        xy_projected = self.unpack_dictionary(self.xy1_projected)[:, :2]
-        # detected points
-        xy_detected = self.unpack_dictionary(self.xy1_detected)[:, :2]
-        # distance
-        self.D = (((xy_projected - xy_detected) ** 2).sum(axis=1) * 0.5).reshape(-1, 1)
         # objective function
         self.objective_function = self.D.sum()
         # print to user
@@ -662,19 +708,19 @@ class CALIBRATE:
                 else:
                     continue
 
-    @staticmethod
-    def initialize_optimization_variables(K, kappa, extrinsics):
+    def initialize_optimization_variables(self, K, kappa, extrinsics):
         # initialize optimization variables
+        h, w = self.parent.image['Virtual Camera'].height, self.parent.image['Virtual Camera'].width
         # Create an ordered dictionary
         eta = OrderedDict()
         # focal length
-        eta['f'] = copy.deepcopy(K[0, 0])
+        eta['f'] = (K[0, 0] + K[1, 1]) / 2
         # focal length aspect ratio
         eta['lambda'] = 1.0
         # optical center offset dX
-        eta['dX'] = 0.0
+        eta['dX'] = K[0, 2] - (w / 2 - 0.5)
         # optical center offset dY
-        eta['dY'] = 0.0
+        eta['dY'] = K[1, 2] - (h / 2 - 0.5)
         # lens distortion coefficients
         eta['kappa_2'] = copy.deepcopy(kappa[0])
         # lens distortion coefficients
@@ -699,6 +745,7 @@ class CALIBRATE:
                 eta[key_tY] = copy.deepcopy(extrinsics[image_ctr][panel]['translation'][1])
                 eta[key_tZ] = copy.deepcopy(extrinsics[image_ctr][panel]['translation'][2])
         return eta
+        # return copy.deepcopy(self.eta_ground_truth)
 
     def extrinsics_roll_pitch_yaw_from_rotor_translation(self, R, t):
         extrinsics = []
@@ -722,23 +769,16 @@ class CALIBRATE:
     def initialize_lens_distortion(self, K, R, t):
         # initialize distortion coefficients
         img_points_radius, world_points_theta = [], []
-        for img_ctr in range(len(self.detected_points_2d)):
-            for panel in self.detected_points_2d[img_ctr]:
-                # get mask
-                mask = copy.deepcopy(self.detected_points_2d[img_ctr][panel]['all_ids'])
-                # check
-                if len(mask) < 6:
-                    continue
-                # get points
-                xy1 = copy.deepcopy(self.xy1_detected['image%02d' % img_ctr][panel])
-                # get points origin
-                XYZ = copy.deepcopy(self.initial_positions_3d[panel][mask, :])
+        for img_ctr in range(len(self.xy1_detected)):
+            for panel in self.xy1_detected['image%02d' % img_ctr]:
                 # homogeneous coordinates
-                XYZ1 = np.concatenate((XYZ, np.ones((XYZ.shape[0], 1))), axis=1)
+                XYZ1 = self.XYZ1['image%02d' % img_ctr][panel]
                 # get field angle of world points
                 XYZ_world = np.matmul(np.concatenate((R[img_ctr][panel], t[img_ctr][panel]), axis=1), XYZ1.T).T
                 XYZ_sphere = XYZ_world / np.sqrt((XYZ_world ** 2).sum(axis=1)).reshape(-1, 1)
                 world_field_angle = np.arccos(XYZ_sphere[:, 2])
+                # get detected points
+                xy1 = copy.deepcopy(self.xy1_detected['image%02d' % img_ctr][panel])
                 # get radial value of detected points
                 xy1 = np.matmul(inv(K), xy1.T).T
                 cam_coords_radius = np.sqrt((xy1[:, :2] ** 2).sum(axis=1))
@@ -753,42 +793,106 @@ class CALIBRATE:
         M = np.array([theta ** 2, theta ** 3, theta ** 4]).T
         kappa = np.matmul(inv(np.matmul(M.T, M)), np.matmul(M.T, radius - theta))
         # check result
+        # rect_error = np.array([radius- np.tan(theta)]).T
         # rectilinear_error = ((np.tan(theta) - radius) ** 2).sum()
         # M1 = np.matmul(np.array([theta, theta ** 2, theta ** 3, theta ** 4]).T,
         #                np.concatenate(([1], kappa)).reshape(-1, 1)).squeeze()
         # lens_distortion_error = ((M1 - radius) ** 2).sum()
+        # kappa[0] = self.eta_ground_truth['kappa_2']
+        # kappa[1] = self.eta_ground_truth['kappa_3']
+        # kappa[2] = self.eta_ground_truth['kappa_4']
         return kappa
 
-    def initialize_KRt(self, H=[]):
-        use_img_ctr = self.use_img_ctr
+    def return_ground_truth_initialization(self):
+        # debug ground truth
+        K0 = self.parent.camera.return_camera_matrix()
+        if np.logical_and(self.parent.int_vars['re-projection_mode'].get() == 'Apply',
+                          self.parent.int_vars['re-projection_type'].get() == 'Rectilinear'):
+            K0[0, 0] = K0[0, 0] / self.parent.default_settings['re-projection']['zoom_rectilinear']
+            K0[1, 1] = K0[1, 1] / self.parent.default_settings['re-projection']['zoom_rectilinear']
+        print('K0 = ')
+        print(K0)
+        # extrinsics ground truth
+        R0, t0 = [], []
+        for key in self.eta_ground_truth:
+            if 'image' in key and 'panel' in key:
+                image_label, panel_label, val = key.split('_')[0], key.split('_')[1], key.split('_')[2]
+                if val == 'roll':
+                    roll = self.eta_ground_truth[image_label + '_' + panel_label + '_roll']
+                    pitch = self.eta_ground_truth[image_label + '_' + panel_label + '_pitch']
+                    yaw = self.eta_ground_truth[image_label + '_' + panel_label + '_yaw']
+                    tX = self.eta_ground_truth[image_label + '_' + panel_label + '_tX']
+                    tY = self.eta_ground_truth[image_label + '_' + panel_label + '_tY']
+                    tZ = self.eta_ground_truth[image_label + '_' + panel_label + '_tZ']
+                    R0.append(self.rpy_to_rot_matrix(roll, pitch, yaw))
+                    t0.append(np.array([tX, tY, tZ]).reshape(-1, 1))
+                    # print('Rt = ' + image_label + ' ' + panel_label)
+                    # print(np.concatenate((R0[0], t0[0]), axis=1))
+                else:
+                    continue
+        # homography ground truth
+        H_gt = []
+        for i in range(len(R0)):
+            H_gt.append(np.matmul(K0, np.concatenate((R0[i], t0[i]), axis=1)))
+        return K0, R0, t0, H_gt
+
+    def initialize_KRt(self, H=[], assume_right_angles=True):
+        # DEBUG:
+        if self.virtual_camera:
+            self.K0, self.R0, self.t0, self.H_gt = self.return_ground_truth_initialization()
+            self.H_gt = [self.H_gt[i] / self.H_gt[i][-1, -1] for i in range(3)][0]
         # per image do
-        n_images, panels = len(self.detected_points_2d), list(self.detected_points_2d[0])
+        n_images, panels = len(self.xy1_detected), list(self.xy1_detected['image00'])
         for img_index in range(n_images):
             homo_per_panel = {}
             # per panel do:
             for panel in panels:
-                # get mask
-                mask = copy.deepcopy(self.detected_points_2d[img_index][panel]['all_ids'])
                 # check
-                if len(mask) < 6:
-                    homo_per_panel[panel] = None
-                else:
+                if self.XYZ1['image%02d' % img_index][panel] is not None:
                     # get points
                     xy = self.xy1_detected['image%02d' % img_index][panel][:, :2]
-                    # return the p matrix for each panel
-                    if panel == 'panel_1':
-                        # points origin
-                        XY = copy.deepcopy(self.initial_positions_3d[panel][mask, :2])
-                        homo_per_panel[panel] = self.rtn_homography(xy, XY, use_img_ctr=use_img_ctr).reshape(3, 3)
-                    else:
-                        # points origin
-                        XYZ = copy.deepcopy(self.initial_positions_3d[panel][mask, :])
-                        homo_per_panel[panel] = self.rtn_homography_side(xy, XYZ, use_img_ctr=use_img_ctr).reshape(3, 3)
+                    XYZ = self.XYZ1['image%02d' % img_index][panel][:, :3]
+                    # return the P matrix for each panel
+                    homo_per_panel[panel] = self.rtn_homography_side(xy, XYZ).reshape(3, 3)
+                else:
+                    homo_per_panel[panel] = None
             H.append(homo_per_panel)
         # get camera matrix
-        K = self.get_camera_matrix(H, use_img_ctr=use_img_ctr)
-        R, t = [], []
+        K = self.get_camera_matrix(H)
+        # K00 = copy.deepcopy(K)
+        # if self.use_img_ctr:
+        #     K00[0, 2], K00[1, 2] = self.w / 2 - 0.5, self.h / 2 - 0.5
+        # # extract all detected points per panel
+        # xy1_detected = {image: [self.xy1_detected[image][panel] for panel in list(self.xy1_detected[image])]
+        #                for image in list(self.xy1_detected)}
+        # xy1_detected = {image: np.concatenate(xy1_detected[image]) for image in list(xy1_detected)}
+        # xy1_camcoords = {image: np.matmul(inv(K00), xy1_detected[image].T).T for image in list(xy1_detected)}
+        # # extract all origin points per panel
+        # XYZ1 = {image: [self.XYZ1[image][panel] for panel in list(self.XYZ1[image])]
+        #                for image in list(self.XYZ1)}
+        # XYZ1 = {image: np.concatenate(XYZ1[image]) for image in list(XYZ1)}
+        # # get the homography
+        # H_graphy = {image: self.rtn_homography_side(xy1_camcoords[image], XYZ1[image]) for image in list(xy1_detected)}
+        # R, t = [], []
+        # # get extrinsics # loop through the images
+        # for image in list(H_graphy):
+        #     Homography, rotor, Rot, trans = H_graphy[image].reshape(3, 4), np.zeros((3, 3)), {}, {}
+        #     r1, r2, r3, translation = Homography[:, 0], Homography[:, 1], Homography[:, 2], Homography[:, 3]
+        #     # get the rotation and translation
+        #     r1_norm, r2_norm, r3_norm = np.sqrt((r1 ** 2).sum()), np.sqrt((r2 ** 2).sum()), np.sqrt((r3 ** 2).sum())
+        #     rotor[:, 0], rotor[:, 1], rotor[:, 2] = r1 / r1_norm, r2 / r2_norm, r3 / r3_norm
+        #     # force orthonormal
+        #     rotor[:, 0], rotor[:, 1], rotor[:, 2] = r1 / r1_norm, r2 / r2_norm, r3 / r3_norm
+        #     rotation = self.quat_to_rot_matrix(self.rot_matrix_to_quat(rotor))
+        #     # get translation
+        #     translation = translation / np.array([r1_norm, r2_norm, r3_norm]).mean()
+        #     # assign
+        #     for panel in panels:
+        #         Rot[panel], trans[panel] = rotation, translation.reshape(-1, 1)
+        #     R.append(Rot)
+        #     t.append(trans)
         # get extrinsics
+        R, t = [], []
         for img_index in range(n_images):
             Rot, trans = {}, {}
             # per panel do:
@@ -824,11 +928,19 @@ class CALIBRATE:
                     trans[panel] = translation
             R.append(Rot)
             t.append(trans)
+        # assume right angles
+        if len(panels) > 1:
+            if assume_right_angles:
+                for img_index in range(len(R)):
+                    R0, t0 = R[img_index]['panel_1'], t[img_index]['panel_1']
+                    for panel in R[img_index]:
+                        R[img_index][panel], t[img_index][panel] = R0, t0
         if self.use_img_ctr:
             K[0, 2], K[1, 2] = self.w / 2 - 0.5, self.h / 2 - 0.5
         return K, R, t
 
-    def return_normalized_vectors(self, K, hA, hB, t):
+    @staticmethod
+    def return_normalized_vectors(K, hA, hB, t):
         # get normalized vectors
         rA, rB = np.matmul(inv(K), hA.reshape(-1, 1)), np.matmul(inv(K), hB.reshape(-1, 1))
         # normalize
@@ -842,11 +954,12 @@ class CALIBRATE:
     def LLS_vs_SVD(M, SVD=False):
         if SVD:
             # write the singular value decomposition
-            U, S, V_T = np.linalg.svd(M)
-            S = np.diag(S)
-            Omega = np.matmul(np.matmul(V_T.T, S), np.matmul(S, V_T))
-            # get the homography
-            p = Omega[-1, :] / Omega[-1, -1]
+            U, D, V_T = np.linalg.svd(M)
+            SS = np.zeros(M.shape)
+            SS[:M.shape[1], :M.shape[1]] = np.diag(D)
+            # Omega = np.matmul(np.matmul(V_T.T, SS), np.matmul(SS, V_T))
+            # get the homography vector
+            p = V_T.T[:, -1] / V_T.T[-1, -1]
         else:
             # Write the singular valued equation M * p = 0, as B * q = b, where
             B, b = M[:, :-1], - M[:, -1]
@@ -876,8 +989,8 @@ class CALIBRATE:
         # solve the system using LLS instead of SVD
         return self.LLS_vs_SVD(A)
 
-    def rtn_homography_side(self, xy, XYZ, x0=0, y0=0, use_img_ctr=True):
-        if use_img_ctr:
+    def rtn_homography_side(self, xy, XYZ, x0=0, y0=0):
+        if self.use_img_ctr:
             # assume the center of distortion is the image center
             x0 = self.parent.default_settings['sensor']['width'] / 2 - 0.5
             y0 = self.parent.default_settings['sensor']['height'] / 2 - 0.5
@@ -895,17 +1008,18 @@ class CALIBRATE:
         A[:n, :], A[n:, :] = aTx, aTy
         # remove plane constraint
         if np.abs(np.diff(X)).max() < 1e-9:
-            A = A[:, [False, True, True, True, False, True, True, True, False, True, True, True]]
+            h_mask = [False, True, True, True, False, True, True, True, False, True, True, True]
         elif np.abs(np.diff(Y)).max() < 1e-9:
-            A = A[:, [True, False, True, True, True, False, True, True, True, False, True, True]]
+            h_mask = [True, False, True, True, True, False, True, True, True, False, True, True]
         elif np.abs(np.diff(Z)).max() < 1e-9:
-            A = A[:, [True, True, False, True, True, True, False, True, True, True, False, True]]
+            h_mask = [True, True, False, True, True, True, False, True, True, True, False, True]
         else:
-            print('The points are not coplanar')
-            raise SystemExit
-        return self.LLS_vs_SVD(A)
+            h_mask = [True, True, True, True, True, True, True, True, True, True, True, True]
+        # H_gt = self.H_gt.flatten()[h_mask]
+        H = self.LLS_vs_SVD(A[:, h_mask])
+        return H  # np.matmul(A, H) # np.array([H, H_gt])
 
-    def get_camera_matrix(self, H, Vec=[], use_img_ctr=True):
+    def get_camera_matrix(self, H, Vec=[]):
         for image_n in range(len(H)):
             for panel in H[image_n]:
                 II = H[image_n][panel]
@@ -928,7 +1042,9 @@ class CALIBRATE:
             B = np.array([[b1, 0, 0], [0, b2, 0], [0, 0, b3]])
         else:
             b1, b2, b3, b4, b5 = b_vec[0], b_vec[1], b_vec[2], b_vec[3], b_vec[4]
-            B = np.array([[b1, 0, b3], [0, b2, b4], [b3, b4, b5]])
+            B = np.array([[b1, 0, b3],
+                          [0, b2, b4],
+                          [b3, b4, b5]])
         return B
 
     def homography_product_vector(self, hi, hj):
@@ -1157,4 +1273,3 @@ class CALIBRATE:
             [np.cos(angle), -np.sin(angle), 0],
             [0, 0, 1]
         ])
-

@@ -30,13 +30,13 @@ class SliderPanel(Panel):
         self.columnconfigure((0, 1), weight=1)
 
         self.data_var = data_var
-        self.data_var.trace('w', self.update_text)
+        # self.data_var.trace('w', self.update_text)
 
         ctk.CTkLabel(self, text=text).grid(column=0, row=0, sticky='W', padx=5)
         self.num_label = ctk.CTkLabel(self, text=self.data_var.get())
         self.num_label.grid(column=1, row=0, sticky='E', padx=5)
 
-        ctk.CTkSlider(self, fg_color=SLIDER_BG, variable=self.data_var,
+        ctk.CTkSlider(self, fg_color=SLIDER_BG, variable=self.data_var, command=self.update_text,
                       from_=min_value, to=max_value).grid(row=1, column=0, columnspan=2, sticky='EW', padx=5, pady=5)
 
     def update_text(self, *args):
@@ -232,7 +232,8 @@ class SensorTiltPanel(ctk.CTkFrame):
         self.tilt_angle_var = camera_var['tilt_angle']
         self.azimuth_var = camera_var['tilt_azimuth']
 
-        self.azimuth_var.var.trace('w', self.update_azimuth)
+        # self.azimuth_var.trace('w', self.update_azimuth)
+        # self.azimuth_var.var.trace('w', self.update_azimuth)  # throttled variable
 
         # column configure
         self.columnconfigure(0, weight=1)
@@ -255,10 +256,7 @@ class SensorTiltPanel(ctk.CTkFrame):
         self.azimuth_value_label.grid(row=2, column=2)
 
     def update_azimuth(self, *args):
-        value = round(self.azimuth_var.get(), 1)
-        # print(f"azimuth (tilt) angle = {value}")
-        self.azimuth_value_label.configure(text=f'{value}')
-        # self.azimuth_var.set(value)
+        self.azimuth_value_label.configure(text=f'{round(self.azimuth_var.get(), 1)}')
 
 
 class ReProjectionPanel(ctk.CTkFrame):
@@ -347,9 +345,12 @@ class EulerPanel(ctk.CTkFrame):
         self.roll_var = object_var['roll']
         self.pitch_var = object_var['pitch']
         self.yaw_var = object_var['yaw']
-        self.roll_var.var.trace('w', self.update_roll)
-        self.pitch_var.var.trace('w', self.update_pitch)
-        self.yaw_var.var.trace('w', self.update_yaw)
+        # self.roll_var.var.trace('w', self.update_roll)        # throttled variable
+        # self.pitch_var.var.trace('w', self.update_pitch)      # throttled variable
+        # self.yaw_var.var.trace('w', self.update_yaw)          # throttled variable
+        # self.roll_var.trace('w', self.update_roll)
+        # self.pitch_var.trace('w', self.update_pitch)
+        # self.yaw_var.trace('w', self.update_yaw)
 
         # Create StringVar for dropdown and slider
         # self.rpy_convention = tk.StringVar(value='RPY')
@@ -387,15 +388,15 @@ class EulerPanel(ctk.CTkFrame):
         self.yaw_value_label.grid(row=3, column=5)
 
     def update_roll(self, *args):
-        # self.roll_var.set(round(self.roll_var.get() / self.step_size) * self.step_size)
+        # self.roll_var.set(round(self.roll_var.get() / self.step_size) * self.step_size)     # causes double update
         self.roll_value_label.configure(text=f'{round(self.roll_var.get(), 1)}')
 
     def update_pitch(self, *args):
-        # self.pitch_var.set(round(self.pitch_var.get() / self.step_size) * self.step_size)
+        # self.pitch_var.set(round(self.pitch_var.get() / self.step_size) * self.step_size)     # causes double update
         self.pitch_value_label.configure(text=f'{round(self.pitch_var.get(), 1)}')
 
     def update_yaw(self, *args):
-        # self.yaw_var.set(round(self.yaw_var.get() / self.step_size) * self.step_size)
+        # self.yaw_var.set(round(self.yaw_var.get() / self.step_size) * self.step_size)     # causes double update
         self.yaw_value_label.configure(text=f'{round(self.yaw_var.get(), 1)}')
 
 
@@ -714,6 +715,8 @@ class GeometricCalibrationPanel(ctk.CTkFrame):
             self.list_files(directory)
 
     def list_files(self, directory):
+        # initialize files list
+        self.files = []
         for widget in self.file_list_frame.winfo_children():
             widget.destroy()
         valid_extensions = ['.jpg', '.bmp', '.png', '.jpeg', '.tiff']
@@ -749,7 +752,7 @@ class GeometricCalibrationPanel(ctk.CTkFrame):
                 detected[panel] = self.charuco.read_chessboard(virtual_cam_image.copy(),
                                                                self.charuco.aruco_dict[panel],
                                                                self.charuco.board[panel])
-                # Reprojection errors
+                # Re-projection errors
                 detection_errors[panel] = self.charuco.return_reprojection_errors(detected, panel)
             # if no corners detected show popup and return
             if len(np.concatenate([detection_errors[p] for p in list(detection_errors)])) < 6:

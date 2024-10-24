@@ -29,7 +29,10 @@ class CAMERA:
             # project to lens distorted co-ordinates
             if np.logical_and(self.parent.int_vars['re-projection_mode'].get() == 'Apply',
                               self.parent.int_vars['re-projection_type'].get() == 'Rectilinear'):
-                xy1 = xyz / xyz[:, 2].reshape(-1, 1)
+                zoom = self.parent.default_settings['re-projection']['zoom_rectilinear']
+                # to camera coordinates
+                xy1 = xyz / (xyz[:, 2] + 1e-12).reshape(-1, 1)
+                xy1[:, :2] = xy1[:, :2] / zoom
                 # project to pixel coordinates
                 xy1 = np.matmul(xy1, self.K.T)
             else:
@@ -179,7 +182,8 @@ class CAMERA:
         grid_xy = self.parent.default_settings['re-projection']['grid_xy']
         return {'x': x.flatten(), 'y': y.flatten(), 'h': int(h), 'w': int(w), 'grid_xy': grid_xy}
 
-    def rectilinear_interpolation_grid(self, zoom=1.5):
+    def rectilinear_interpolation_grid(self):
+        zoom = self.parent.default_settings['re-projection']['zoom_rectilinear']
         xy1 = np.array([self.pixels['x'], self.pixels['y'], np.ones((len(self.pixels['x'].flatten()),))]).T
         # remove camera matrix
         xy1 = np.matmul(xy1, inv(self.K).T)
@@ -192,13 +196,14 @@ class CAMERA:
         xy1 = self.spherical_rays_to_pixel_coords(xyz)
         return xy1
 
-    def curvilinear_interpolation_grid(self, s=1.2):
+    def curvilinear_interpolation_grid(self):
+        zoom = self.parent.default_settings['re-projection']['zoom_cylindrical']
         h, w = self.pixels['h'], self.pixels['w']
         # remove radial distortion + return spherical rays
         xyz = copy.deepcopy(self.no_tilt_projection_rays).reshape(h, w, 3)
         fa = self.no_tilt_projection_fa.reshape(h, w)
         # continue
-        h_top_btm = [xyz[0, int(w / 2), 1] * s, xyz[-1, int(w / 2), 1] * s]
+        h_top_btm = [xyz[0, int(w / 2), 1] * zoom, xyz[-1, int(w / 2), 1] * zoom]
         fa_left_right = [-fa[int(h / 2), 0], fa[int(h / 2), -1]]
         # pixel grid
         theta, h = np.meshgrid(np.linspace(fa_left_right[0], fa_left_right[1], w),
@@ -247,7 +252,7 @@ class CAMERA:
         return self.radial_undistortion(xy1)
 
     def remove_sensor_tilt_from_pixel_rays(self, xyz):
-        # Remove sensor tilt
+        # to camera coordinates
         xy1 = self.radial_distortion(xyz)
         # remove sensor tilt
         xy1 = self.sensor_tilt(xy1, method='unproject_rays')
@@ -266,17 +271,29 @@ class CAMERA:
     def get_ground_truth_camera_parameters(self):
         # lens distortion
         M = np.array([self.LUT['theta'] ** 2, self.LUT['theta'] ** 3, self.LUT['theta'] ** 4]).T
-        kappa = np.matmul(inv(np.matmul(M.T, M)), np.matmul(M.T, self.LUT['r'] - self.LUT['theta']))
+        if np.logical_and(self.parent.int_vars['re-projection_mode'].get() == 'Apply',
+                          self.parent.int_vars['re-projection_type'].get() == 'Rectilinear'):
+            # max field angle is 90 degrees
+            measure = (self.LUT['theta'] - 0.75 * np.pi / 2) ** 2
+            idx = np.where(measure == measure.min())[0][0]
+            r, M = np.tan(self.LUT['theta'][:idx]), M[:idx, :]
+            kappa = np.matmul(inv(np.matmul(M.T, M)), np.matmul(M.T, r - self.LUT['theta'][:idx]))
+            # verify
+            r1 = np.matmul(M, kappa) + self.LUT['theta'][:idx]
+        else:
+            kappa = np.matmul(inv(np.matmul(M.T, M)), np.matmul(M.T, self.LUT['r'] - self.LUT['theta']))
         # number of panels in virtual image
         panels = ['panel_1', 'panel_2', 'panel_3'] if self.parent.charuco.params['target_3d'].get() else ['panel_1']
+        # ground truth camera parameters
+        self.project_corners_through_model()
         # loop through panels
         _ext_dict_ = {}
         for panel in panels:
-            # get rotations and translation
-            R1, R2, t = self.parent.world.Rt[:, :3], self.parent.world.aXs_angle, self.parent.world.Rt[:, -1]
-            # project board corners
-            xyz_charuco = np.matmul(R1, self.parent.charuco.board_corners[panel].T) + t[:, np.newaxis]
-            self.parent.charuco.projected_board_corners_3d[panel] = np.matmul(R2, xyz_charuco).T
+            # # get rotations and translation
+            # R1, R2, t = self.parent.world.Rt[:, :3], self.parent.world.aXs_angle, self.parent.world.Rt[:, -1]
+            # # project board corners
+            # xyz_charuco = np.matmul(R1, self.parent.charuco.board_corners[panel].T) + t[:, np.newaxis]
+            # self.parent.charuco.projected_board_corners_3d[panel] = np.matmul(R2, xyz_charuco).T
             # get projected panel corners
             xyz_projected = self.parent.charuco.projected_board_corners_3d[panel]
             # get initial position of panel corners
@@ -295,8 +312,14 @@ class CAMERA:
             _ext_dict_['image00_' + panel.replace('_', '0') + '_tX'] = t[0]
             _ext_dict_['image00_' + panel.replace('_', '0') + '_tY'] = t[1]
             _ext_dict_['image00_' + panel.replace('_', '0') + '_tZ'] = t[2]
-        self.eta_ground_truth = self.fill_eta_vector(self.K, kappa, _ext_dict_)
-        return self.eta_ground_truth
+        # camera matrix zoom rectilinear
+        K = copy.deepcopy(self.K)
+        if np.logical_and(self.parent.int_vars['re-projection_mode'].get() == 'Apply',
+                          self.parent.int_vars['re-projection_type'].get() == 'Rectilinear'):
+            K[0, 0] = K[0, 0] / self.parent.default_settings['re-projection']['zoom_rectilinear']
+            K[1, 1] = K[1, 1] / self.parent.default_settings['re-projection']['zoom_rectilinear']
+        self.eta_ground_truth = self.fill_eta_vector(K, kappa, _ext_dict_)
+        return copy.deepcopy(self.eta_ground_truth)
 
     def fill_eta_vector(self, K, kappa, _ext_dict_):
         h, w = self.parent.image['Virtual Camera'].height, self.parent.image['Virtual Camera'].width

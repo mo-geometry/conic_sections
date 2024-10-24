@@ -10,6 +10,7 @@ import copy
 class PHOTON:
     # constructor
     def __init__(self, *parent):
+        self.counter = 0
         self.parent = parent[0]
         self.object = {'panel_1': None}
         self.world_background = imread(choice(glob.glob(os.path.join('background', '*'))))[:, :, ::-1]
@@ -48,6 +49,8 @@ class PHOTON:
         self.sensor_rgb_out = self.bilinear_interp_image(self.world_background, np.array([pts_x, pts_y]))
 
     def to_rgb(self):
+        self.counter = self.counter + 1
+        print('image generation %d' % self.counter)
         # 3D target
         target_3d = np.logical_and(self.parent.charuco.params['target_3d'].get(),
                                    self.parent.charuco.params['ChArUco'].get())
