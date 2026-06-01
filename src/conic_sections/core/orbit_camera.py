@@ -88,6 +88,20 @@ class OrbitCamera:
         self._last_x = x
         self._last_y = y
 
+    def sync_cursor(self, x: float, y: float) -> None:
+        """Update the stored cursor position without applying drag rotation.
+
+        Call this when the cursor moves but drag input should be suppressed
+        (e.g. while a UI overlay has mouse focus) so the next real drag
+        starts from the correct reference point.
+
+        Args:
+            x: Cursor x position in window coordinates.
+            y: Cursor y position in window coordinates.
+        """
+        self._last_x = x
+        self._last_y = y
+
     def on_scroll(self, _x_offset: float, y_offset: float) -> None:
         """Handle scroll events for zoom (GLFW callback signature).
 

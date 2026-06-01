@@ -13,6 +13,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-01
+
+### Added
+- Procedural camera mesh generator with box body, lens barrel, and viewfinder
+- View frustum wireframe generator for visualising camera FOV
+- SceneCamera class wrapping Camera model with world-space pose (position, Euler rotation)
+- SceneCameraManager for adding, removing, selecting, and cycling scene cameras
+- Viewport switching: toggle between orbit camera and any scene camera's perspective
+- Dear ImGui integration with camera control panel (position/rotation sliders, frustum toggles)
+- Per-vertex colour shader for camera mesh rendering (Blinn-Phong, no texture)
+- Line shader with model matrix support for frustum wireframe rendering
+- Keyboard shortcuts: Tab to toggle panel, 1-9 to select scene cameras, V to toggle view
+- ImGui input capture: orbit camera ignores mouse when ImGui panels are active
+- FPS-style controls when viewing through a scene camera:
+  mouse yaw/pitch, left-click drag roll, scroll zoom (FOV), WASD/arrow horizontal
+  movement, Space/Shift+Space for ascend/descend, Shift for double speed,
+  double left-click to reset horizon
+- Ctrl toggle to freeze/unfreeze camera orientation (frees cursor for ImGui)
+- GLFW cursor capture (disabled cursor) when in scene camera FPS mode
+- World coordinate axes visualisation (+X red, +Y green, +Z blue) with ImGui toggle
+- FOV slider in ImGui camera panel
+- Horizontal-plane movement: WASD/arrows project onto XZ plane regardless of pitch
+- Pyright/Pylance configuration in pyproject.toml for third-party library compatibility
+- Tests for camera mesh geometry (13 tests), scene camera (17 tests), FPS controls (9 tests),
+  world axes (4 tests)
+- imgui-bundle[glfw] and PyOpenGL added to project dependencies
+
+### Changed
+- Camera coordinate convention: camera now looks along +Z (was -Z), +Y up, +X right
+- Frustum wireframe extends along +Z to match new camera convention
+- Euler angle labels in ImGui panel corrected to Pitch/Yaw/Roll
+- Escape key exits scene camera view before quitting application
+- Frustum wireframe regenerated per-frame to track FOV changes from scroll zoom
+
+### Fixed
+- View matrix reflection: negating both X and Z rows (det=+1) matches glm::lookAt
+  convention, fixing left-right mirroring when viewing through scene cameras
+- Scene camera textures: correct winding order eliminates face culling of textured
+  geometry when viewed through scene cameras
+- macOS OpenGL core profile: removed glLineWidth >1.0 calls that caused GL_INVALID_VALUE
+
 ## [0.2.0] - 2026-05-24
 
 ### Added
@@ -42,6 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test suite with 21 passing tests covering camera math and transforms
 - README, CONTRIBUTING guide, .gitignore with asset and IDE exclusions
 
-[Unreleased]: https://github.com/mo-geometry/conic_sections/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/mo-geometry/conic_sections/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/mo-geometry/conic_sections/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/mo-geometry/conic_sections/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mo-geometry/conic_sections/releases/tag/v0.1.0

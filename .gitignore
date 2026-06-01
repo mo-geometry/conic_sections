@@ -37,6 +37,12 @@ htmlcov/
 .pytest_cache/
 .mypy_cache/
 
+# Type stubs (auto-generated)
+typestubs/
+
+# ImGui state
+imgui.ini
+
 # Compiled shaders / GPU caches
 *.spv
 *.cache
