@@ -9,6 +9,7 @@ from cv2 import resize, INTER_LINEAR
 import yaml
 import os
 from matplotlib import cm
+from modules.gpu_utils import to_cpu
 
 
 class MATPLOTLIB:
@@ -91,8 +92,7 @@ class MATPLOTLIB:
         h, w = self.parent.default_settings['sensor']['height'], self.parent.default_settings['sensor']['width']
         if r is None:
             r = self.radius
-        # pixel rays
-        xyz = self.parent.camera.pixel_rays['xyz']
+        xyz = to_cpu(self.parent.camera.pixel_rays['xyz_gpu'])
         x, y, z = xyz[:, 0].reshape(h, w), xyz[:, 1].reshape(h, w), xyz[:, 2].reshape(h, w)
         # grid
         gridX = np.linspace(0, w - 1, self.grid_settings['grid_xy'][0]).astype('int')

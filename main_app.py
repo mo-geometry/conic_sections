@@ -356,33 +356,16 @@ class App(ctk.CTk):
         self.canvas_width[tab_name] = canvas_tab.winfo_width()
         self.canvas_height[tab_name] = canvas_tab.winfo_height()
 
-        # If the tab is '3D World', create a matplotlib figure and add it to the canvas
         if tab_name == '3D World':
-            # Delete the current images on the Canvas widgets
-            canvas.delete('all')
-
-            # Redraw the figure
-            self.plotting.figure['fig'].canvas.draw()
-
-            # Use plt.pause() to allow the figure to update
-            plt.pause(0.001)
-
-            # Flush events to process any pending GUI events
-            self.plotting.figure['fig'].canvas.flush_events()
-
-            # # Connect the callback to the draw event
-            # self.plotting.figure['fig'].canvas.mpl_connect('draw_event', self.print_viewpoint)
-
-            # Check if the canvas already exists
             if not hasattr(self, 'figure_canvas') or self.figure_canvas is None:
-                # Create a FigureCanvasTkAgg object with the figure
+                # Create a FigureCanvasTkAgg object with the figure (first draw must be synchronous)
                 self.figure_canvas = FigureCanvasTkAgg(self.plotting.figure['fig'],
                                                        master=self.image_output.tab(tab_name))
-                self.figure_canvas.draw()  # Ensure the figure is drawn
+                self.figure_canvas.draw()
                 self.figure_canvas.get_tk_widget().pack()
             else:
-                # Just redraw the existing canvas
-                self.figure_canvas.draw()
+                self.figure_canvas.draw_idle()
+            return
         elif tab_name == 'Virtual Camera':
             virtual_cam_image = self.photon.to_rgb()
             if np.logical_and(self.cali_vars['detect_corners'].get(), self.cali_vars['ChArUco'].get()):
@@ -402,9 +385,8 @@ class App(ctk.CTk):
                   f"Updates will not be applied here.")
 
         # Display the image on the Canvas widgets
-        if tab_name != '3D World':
-            canvas.create_image(self.canvas_width[tab_name] / 2, self.canvas_height[tab_name] / 2,
-                                image=self.image_tk[tab_name])
+        canvas.create_image(self.canvas_width[tab_name] / 2, self.canvas_height[tab_name] / 2,
+                            image=self.image_tk[tab_name])
 
     def export_image(self, name, file, path):
         export_string = f'{path}/{name}.{file}'

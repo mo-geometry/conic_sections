@@ -2,6 +2,15 @@ import numpy as np
 from numpy.linalg import inv
 import copy
 from collections import OrderedDict
+from modules.gpu_utils import xp, to_gpu, to_cpu
+
+
+def _row_norm(xyz):
+    return xp.sqrt(xyz[:, 0] ** 2 + xyz[:, 1] ** 2 + xyz[:, 2] ** 2)
+
+
+def _mm_row_major(A, B):
+    return xp.einsum('ik,kj->ij', A, B)
 
 
 class CAMERA:
@@ -36,31 +45,28 @@ class CAMERA:
                 # project to pixel coordinates
                 xy1 = np.matmul(xy1, self.K.T)
             else:
-                # project to image coordinates
-                xy1 = self.spherical_rays_to_pixel_coords(xyz)
+                xy1 = to_cpu(self.spherical_rays_to_pixel_coords(to_gpu(xyz)))
             self.parent.charuco.projected_board_corners[panel] = xy1[:, :2]
 
     # FUNCTIONS ########################################################################################################
 
     def initialize_intrinsics(self):
-        # camera matrix
         self.K = self.return_camera_matrix()
-        # radial distortion LUT
+        self.K_gpu, self.K_inv_gpu = to_gpu(self.K), to_gpu(inv(self.K))
+        # radial distortion LUT (small -- kept on the CPU, with a GPU copy for the per-pixel xp.interp calls)
         self.LUT = self.return_radial_distortion_LUT()
+        self.LUT_gpu = {k: to_gpu(v) for k, v in self.LUT.items()}
         # sensor tilt vector
         self.tilt = self.return_sensor_tilt_vector()
-        # pixel vectors unit sphere
-        self.pixel_rays = {'xyz': self.return_pixel_vectors()}
-        # initialize projection rays
+        self.pixel_rays = {'xyz_gpu': self.return_pixel_vectors()}
         self.no_tilt_projection_rays = self.init_projection_rays_no_tilt()
-        self.no_tilt_projection_fa = np.arccos(self.no_tilt_projection_rays[:, 2])
-        # get interpolation grids
-        self.interpolation_grids = self.return_interpolation_grids()
+        self.no_tilt_projection_fa = xp.arccos(self.no_tilt_projection_rays[:, 2])
+        self.interpolation_grids_gpu = self.return_interpolation_grids()
         # max vertical fov for background image
         self.max_vert_fov = self.get_max_vertical_fov()
 
     def return_pixel_vectors(self):
-        xy1 = np.array([self.pixels['x'], self.pixels['y'], np.ones((len(self.pixels['x']),))]).T
+        xy1 = xp.array([self.pixels['x'], self.pixels['y'], xp.ones((len(self.pixels['x']),))]).T
         # remove radial distortion + sensor tilt
         return self.pixel_coords_to_spherical_rays(xy1)
 
@@ -75,25 +81,25 @@ class CAMERA:
 
     def radial_distortion(self, xyz):
         # field angle
-        field_angle = np.arccos(xyz[:, 2])
-        azimuth_angle = np.arctan2(xyz[:, 1], xyz[:, 0])
+        field_angle = xp.arccos(xyz[:, 2])
+        azimuth_angle = xp.arctan2(xyz[:, 1], xyz[:, 0])
         # field angle
-        radius = np.interp(field_angle, self.LUT['theta'], self.LUT['r'])
+        radius = xp.interp(field_angle, self.LUT_gpu['theta'], self.LUT_gpu['r'])
         # pixel vector on the image plane
-        xy1 = np.array([radius * np.cos(azimuth_angle),
-                        radius * np.sin(azimuth_angle), np.ones(len(field_angle), )])
+        xy1 = xp.array([radius * xp.cos(azimuth_angle),
+                        radius * xp.sin(azimuth_angle), xp.ones(len(field_angle), )])
         return xy1.T
 
     def radial_undistortion(self, xy1):
         # xy-radius
-        r = np.sqrt(xy1[:, 0] ** 2 + xy1[:, 1] ** 2)
+        r = xp.sqrt(xy1[:, 0] ** 2 + xy1[:, 1] ** 2)
         # xy-azimuthal angle
         cosine_azi = xy1[:, 0] / r
         sine_azi = xy1[:, 1] / r
         # field angle
-        field_angle = np.interp(r, self.LUT['r'], self.LUT['theta'])
+        field_angle = xp.interp(r, self.LUT_gpu['r'], self.LUT_gpu['theta'])
         # pixel vector on the unit sphere
-        xyz = np.array([np.sin(field_angle) * cosine_azi, np.sin(field_angle) * sine_azi, np.cos(field_angle)])
+        xyz = xp.array([xp.sin(field_angle) * cosine_azi, xp.sin(field_angle) * sine_azi, xp.cos(field_angle)])
         return xyz.T
 
     def sensor_tilt(self, xy1, method='project_rays'):
@@ -178,20 +184,20 @@ class CAMERA:
     # __INIT__ #########################################################################################################
     def return_pixel_coordinates(self):
         h, w = self.parent.int_vars['height'].get(), self.parent.int_vars['width'].get()
-        x, y = np.meshgrid(np.arange(0, w), np.arange(0, h))
+        x, y = xp.meshgrid(xp.arange(0, w), xp.arange(0, h))
         grid_xy = self.parent.default_settings['re-projection']['grid_xy']
         return {'x': x.flatten(), 'y': y.flatten(), 'h': int(h), 'w': int(w), 'grid_xy': grid_xy}
 
     def rectilinear_interpolation_grid(self):
         zoom = self.parent.default_settings['re-projection']['zoom_rectilinear']
-        xy1 = np.array([self.pixels['x'], self.pixels['y'], np.ones((len(self.pixels['x'].flatten()),))]).T
+        xy1 = xp.array([self.pixels['x'], self.pixels['y'], xp.ones((len(self.pixels['x'].flatten()),))]).T
         # remove camera matrix
-        xy1 = np.matmul(xy1, inv(self.K).T)
+        xy1 = _mm_row_major(xy1, self.K_inv_gpu.T)
         # zoom coordinates
         if zoom != 1.0:
             xy1[:, 0], xy1[:, 1] = xy1[:, 0] * zoom, xy1[:, 1] * zoom
         # normalize to unit sphere
-        xyz = xy1 / np.sqrt((xy1 ** 2).sum(axis=1)).reshape(-1, 1)
+        xyz = xy1 / _row_norm(xy1).reshape(-1, 1)
         # project to image coordinates
         xy1 = self.spherical_rays_to_pixel_coords(xyz)
         return xy1
@@ -200,19 +206,19 @@ class CAMERA:
         zoom = self.parent.default_settings['re-projection']['zoom_cylindrical']
         h, w = self.pixels['h'], self.pixels['w']
         # remove radial distortion + return spherical rays
-        xyz = copy.deepcopy(self.no_tilt_projection_rays).reshape(h, w, 3)
+        xyz = self.no_tilt_projection_rays.copy().reshape(h, w, 3)
         fa = self.no_tilt_projection_fa.reshape(h, w)
         # continue
         h_top_btm = [xyz[0, int(w / 2), 1] * zoom, xyz[-1, int(w / 2), 1] * zoom]
         fa_left_right = [-fa[int(h / 2), 0], fa[int(h / 2), -1]]
         # pixel grid
-        theta, h = np.meshgrid(np.linspace(fa_left_right[0], fa_left_right[1], w),
-                               np.linspace(h_top_btm[0], h_top_btm[1], h))
+        theta, h = xp.meshgrid(xp.linspace(fa_left_right[0], fa_left_right[1], w),
+                               xp.linspace(h_top_btm[0], h_top_btm[1], h))
         # to cartesian
-        y, z, x = h, np.cos(theta), np.sin(theta)
-        xyz = np.array([x.flatten(), y.flatten(), z.flatten()]).T
+        y, z, x = h, xp.cos(theta), xp.sin(theta)
+        xyz = xp.array([x.flatten(), y.flatten(), z.flatten()]).T
         # Normalize to the unit sphere
-        xyz = xyz / np.sqrt((xyz ** 2).sum(axis=1)).reshape(-1, 1)
+        xyz = xyz / _row_norm(xyz).reshape(-1, 1)
         # project to image coordinates
         xy1 = self.spherical_rays_to_pixel_coords(xyz)
         return xy1
@@ -220,17 +226,17 @@ class CAMERA:
     def spherical_interpolation_grid(self):
         h, w = self.pixels['h'], self.pixels['w']
         # remove radial distortion + return spherical rays
-        xyz = copy.deepcopy(self.no_tilt_projection_rays).reshape(h, w, 3)
+        xyz = self.no_tilt_projection_rays.copy().reshape(h, w, 3)
         fa = self.no_tilt_projection_fa.reshape(h, w)
         # continue
-        azi_top_btm = [np.arcsin(xyz[0, int(w / 2), 1]), np.arcsin(xyz[-1, int(w / 2), 1])]
+        azi_top_btm = [xp.arcsin(xyz[0, int(w / 2), 1]), xp.arcsin(xyz[-1, int(w / 2), 1])]
         fa_left_right = [-fa[int(h / 2), 0], fa[int(h / 2), -1]]
         # pixel grid
-        theta, phi = np.meshgrid(np.linspace(fa_left_right[0], fa_left_right[1], w),
-                                 np.linspace(azi_top_btm[0], azi_top_btm[1], h))
+        theta, phi = xp.meshgrid(xp.linspace(fa_left_right[0], fa_left_right[1], w),
+                                 xp.linspace(azi_top_btm[0], azi_top_btm[1], h))
         # to cartesian
-        x, y, z = np.sin(theta) * np.cos(phi), np.sin(phi), np.cos(theta) * np.cos(phi)
-        xyz = np.array([x.flatten(), y.flatten(), z.flatten()]).T
+        x, y, z = xp.sin(theta) * xp.cos(phi), xp.sin(phi), xp.cos(theta) * xp.cos(phi)
+        xyz = xp.array([x.flatten(), y.flatten(), z.flatten()]).T
         # project to image coordinates
         xy1 = self.spherical_rays_to_pixel_coords(xyz)
         return xy1
@@ -241,11 +247,11 @@ class CAMERA:
         # apply sensor tilt
         xy1 = self.sensor_tilt(xy1)
         # return pixel coordinates
-        return np.matmul(xy1, self.K.T)
+        return _mm_row_major(xy1, self.K_gpu.T)
 
     def pixel_coords_to_spherical_rays(self, xy1):
         # remove camera matrix
-        xy1 = np.matmul(xy1, inv(self.K).T)
+        xy1 = _mm_row_major(xy1, self.K_inv_gpu.T)
         # remove sensor tilt
         xy1 = self.sensor_tilt(xy1, method='unproject_rays')
         # remove radial distortion + return spherical rays
@@ -261,9 +267,9 @@ class CAMERA:
         return xyz
 
     def init_projection_rays_no_tilt(self):
-        xy1 = np.array([self.pixels['x'], self.pixels['y'], np.ones((len(self.pixels['x']),))]).T
+        xy1 = xp.array([self.pixels['x'], self.pixels['y'], xp.ones((len(self.pixels['x']),))]).T
         # remove camera matrix
-        xy1 = np.matmul(xy1, inv(self.K).T)
+        xy1 = _mm_row_major(xy1, self.K_inv_gpu.T)
         # remove radial distortion + return spherical rays
         xyz = self.radial_undistortion(xy1)
         return xyz
