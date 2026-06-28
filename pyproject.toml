@@ -122,6 +122,10 @@ ignore_missing_imports = true
 module = "conic_sections.__main__"
 disallow_untyped_calls = false
 
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_decorators = false
+
 [tool.pyright]
 pythonVersion = "3.11"
 typeCheckingMode = "basic"

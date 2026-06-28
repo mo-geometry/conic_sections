@@ -206,12 +206,14 @@ class TestUndistortPoints:
     def test_output_is_unit_vectors(self, model: LensModel) -> None:
         """Undistorted rays should lie on the unit sphere."""
         lut = build_distortion_lut(model)
-        uv1 = np.array([
-            [0.0, 0.0, 1.0],
-            [0.5, 0.0, 1.0],
-            [0.0, 0.3, 1.0],
-            [0.2, 0.2, 1.0],
-        ])
+        uv1 = np.array(
+            [
+                [0.0, 0.0, 1.0],
+                [0.5, 0.0, 1.0],
+                [0.0, 0.3, 1.0],
+                [0.2, 0.2, 1.0],
+            ]
+        )
         xyz = undistort_points(uv1, lut)
         norms = np.linalg.norm(xyz, axis=1)
         np.testing.assert_array_almost_equal(norms, 1.0, decimal=10)
@@ -277,11 +279,14 @@ class TestFullPipeline:
     @pytest.fixture()
     def k_matrix(self) -> npt.NDArray[np.float64]:
         """Standard camera matrix: f=500, principal point at (320, 240)."""
-        return np.array([
-            [500.0, 0.0, 320.0],
-            [0.0, 500.0, 240.0],
-            [0.0, 0.0, 1.0],
-        ], dtype=np.float64)
+        return np.array(
+            [
+                [500.0, 0.0, 320.0],
+                [0.0, 500.0, 240.0],
+                [0.0, 0.0, 1.0],
+            ],
+            dtype=np.float64,
+        )
 
     def test_on_axis_projects_to_principal_point(self, k_matrix: npt.NDArray[np.float64]) -> None:
         """A ray along +Z should land at the principal point (cx, cy)."""

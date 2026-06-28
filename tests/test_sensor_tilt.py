@@ -21,7 +21,6 @@ from conic_sections.core.sensor_tilt import (
     unproject_rays,
 )
 
-
 # ---------------------------------------------------------------------------
 # Tilt vector construction
 # ---------------------------------------------------------------------------
@@ -218,11 +217,13 @@ class TestPipelineIntegration:
 
         lut = build_distortion_lut(LensModel.EQUIDISTANT)
         tilt = tilt_from_angles(10.0, 45.0)
-        k_matrix = np.array([
-            [500.0, 0.0, 320.0],
-            [0.0, 500.0, 240.0],
-            [0.0, 0.0, 1.0],
-        ])
+        k_matrix = np.array(
+            [
+                [500.0, 0.0, 320.0],
+                [0.0, 500.0, 240.0],
+                [0.0, 0.0, 1.0],
+            ]
+        )
 
         # Generate rays in forward hemisphere
         rng = np.random.default_rng(321)

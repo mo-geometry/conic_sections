@@ -157,12 +157,7 @@ def build_distortion_lut(
     elif model == LensModel.POLYNOMIAL:
         if coeffs is None:
             coeffs = DistortionCoeffs()
-        r = (
-            theta
-            + coeffs.k2 * theta**2
-            + coeffs.k3 * theta**3
-            + coeffs.k4 * theta**4
-        )
+        r = theta + coeffs.k2 * theta**2 + coeffs.k3 * theta**3 + coeffs.k4 * theta**4
         # Monotonicity check — dr/dθ must be positive everywhere.
         if np.gradient(r).min() < 0:
             msg = (
@@ -292,13 +287,13 @@ def spherical_rays_to_pixel_coords(
     Args:
         xyz: Unit rays on S², shape (N, 3).
         lut: Pre-computed distortion look-up table.
-        k_matrix: 3×3 camera intrinsic matrix.
+        k_matrix: 3x3 camera intrinsic matrix.
 
     Returns:
         Pixel coordinates, shape (N, 3) — columns are (px, py, 1).
     """
     uv1 = distort_points(xyz, lut)
-    return (uv1 @ k_matrix.T)
+    return uv1 @ k_matrix.T
 
 
 def pixel_coords_to_spherical_rays(
@@ -314,7 +309,7 @@ def pixel_coords_to_spherical_rays(
     Args:
         pixels: Pixel coordinates, shape (N, 3) — columns are (px, py, 1).
         lut: Pre-computed distortion look-up table.
-        k_matrix: 3×3 camera intrinsic matrix.
+        k_matrix: 3x3 camera intrinsic matrix.
 
     Returns:
         Unit rays on S², shape (N, 3).

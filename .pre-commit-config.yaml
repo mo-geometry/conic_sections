@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.8
+    rev: v0.11.13
     hooks:
       - id: ruff
         args: [--fix]
@@ -9,11 +9,11 @@ repos:
         exclude: ^typestubs/
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.10.0
+    rev: v1.15.0
     hooks:
       - id: mypy
         additional_dependencies:
-          - numpy>=1.26
+          - numpy>=1.26,<2.2
         args: [--ignore-missing-imports]
         exclude: ^typestubs/
 
