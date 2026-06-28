@@ -296,7 +296,7 @@ class TestSceneCameraManager:
         mgr = SceneCameraManager()
         orbit_view = np.eye(4, dtype=np.float64)
         orbit_proj = np.eye(4, dtype=np.float64)
-        view, proj, eye = mgr.get_view_projection(orbit_view, orbit_proj)
+        view, proj, _eye = mgr.get_view_projection(orbit_view, orbit_proj)
         np.testing.assert_allclose(view, orbit_view)
         np.testing.assert_allclose(proj, orbit_proj)
 
@@ -308,7 +308,7 @@ class TestSceneCameraManager:
 
         orbit_view = np.eye(4, dtype=np.float64)
         orbit_proj = np.eye(4, dtype=np.float64)
-        view, proj, eye = mgr.get_view_projection(orbit_view, orbit_proj)
+        view, _proj, eye = mgr.get_view_projection(orbit_view, orbit_proj)
 
         # Should be the scene camera's matrices, not orbit
         np.testing.assert_allclose(view, cam.view_matrix)

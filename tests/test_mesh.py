@@ -11,7 +11,7 @@ class TestCreateCube:
     """Cube mesh generation tests."""
 
     def test_vertex_count(self) -> None:
-        positions, normals, texcoords, indices = create_cube()
+        positions, normals, texcoords, _indices = create_cube()
         # 6 faces x 4 vertices = 24
         assert positions.shape == (24, 3)
         assert normals.shape == (24, 3)

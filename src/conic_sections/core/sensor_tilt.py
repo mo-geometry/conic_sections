@@ -23,7 +23,7 @@ azimuth (the direction of the tilt in the sensor plane).
 
 Coordinate convention (consistent with the rest of the repository):
 - The optical axis is the +Z direction.
-- An untilted sensor has n = (0, 0, −1)  (normal points back toward lens).
+- An untilted sensor has n = (0, 0, -1)  (normal points back toward lens).
 - Tilt angle θ = 0 means no tilt; the equations reduce to the identity.
 
 Reference:
@@ -46,7 +46,7 @@ class TiltVector:
     Attributes:
         nx: X-component of the tilt normal.
         ny: Y-component of the tilt normal.
-        nz: Z-component of the tilt normal (−1 when untilted).
+        nz: Z-component of the tilt normal (-1 when untilted).
     """
 
     nx: float = 0.0
