@@ -12,6 +12,13 @@ from dataclasses import dataclass, field
 import numpy as np
 import numpy.typing as npt
 
+from conic_sections.core.distortion import (
+    DistortionCoeffs,
+    DistortionLUT,
+    LensModel,
+    build_distortion_lut,
+)
+
 
 @dataclass
 class Intrinsics:
@@ -22,7 +29,12 @@ class Intrinsics:
         fy: Focal length in pixels (y-axis).
         cx: Principal point x-coordinate in pixels.
         cy: Principal point y-coordinate in pixels.
-        dist_coeffs: Radial/tangential distortion coefficients (k1, k2, p1, p2, k3).
+        dist_coeffs: Legacy radial/tangential distortion coefficients
+            (k1, k2, p1, p2, k3).  Retained for OpenCV compatibility.
+        lens_model: Fish-eye / wide-angle projection model.  Defaults to
+            PINHOLE (no radial distortion).
+        distortion_coeffs: Polynomial distortion coefficients (k2, k3, k4).
+            Only used when ``lens_model`` is ``LensModel.POLYNOMIAL``.
     """
 
     fx: float = 800.0
@@ -32,6 +44,21 @@ class Intrinsics:
     dist_coeffs: npt.NDArray[np.float64] = field(
         default_factory=lambda: np.zeros(5, dtype=np.float64)
     )
+    lens_model: LensModel = LensModel.PINHOLE
+    distortion_coeffs: DistortionCoeffs = field(default_factory=DistortionCoeffs)
+
+    @property
+    def distortion_lut(self) -> DistortionLUT:
+        """Build (or return) the radial distortion look-up table.
+
+        The LUT is regenerated each time this property is accessed.  For
+        real-time rendering, cache the result externally and rebuild only
+        when the lens model or coefficients change.
+        """
+        return build_distortion_lut(
+            model=self.lens_model,
+            coeffs=self.distortion_coeffs,
+        )
 
     @property
     def matrix(self) -> npt.NDArray[np.float64]:

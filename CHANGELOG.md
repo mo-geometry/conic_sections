@@ -13,6 +13,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Radial lens distortion module (`core/distortion.py`) with five fish-eye projection
+  models: Equidistant (r=θ), Equisolid (r=2·sin(θ/2)), Stereographic (r=2·tan(θ/2)),
+  Orthographic (r=sin(θ)), Polynomial (r=θ+k₂θ²+k₃θ³+k₄θ⁴), plus Pinhole baseline
+- LUT-based distortion/undistortion with 4096-point look-up table and `numpy.interp`
+- Forward projection (`distort_points`): unit rays → image-plane coordinates
+- Inverse projection (`undistort_points`): image-plane coordinates → unit rays
+- Full pipeline helpers: `spherical_rays_to_pixel_coords`, `pixel_coords_to_spherical_rays`
+- `LensModel` enum and `DistortionCoeffs` dataclass for polynomial coefficients
+- `Intrinsics.lens_model` and `Intrinsics.distortion_coeffs` fields with `distortion_lut`
+  property wiring distortion into the camera model
+- Comprehensive test suite for distortion module: LUT generation, known analytical values,
+  round-trip consistency, monotonicity checks, edge cases, full pipeline (30+ test cases)
+- Sensor tilt compensation module (`core/sensor_tilt.py`) implementing IMVIP 2020 equations:
+  `project_rays` (eqns 4a/4b, world→sensor) and `unproject_rays` (eqns 7a/7b, sensor→world)
+- `TiltVector` dataclass and `tilt_from_angles(angle_deg, azimuth_deg)` constructor
+- Sensor tilt test suite: tilt vector construction, identity, optical-centre fixed point,
+  round-trip consistency, non-trivial behaviour, full distortion+tilt pipeline integration
+
 ## [0.3.0] - 2026-06-01
 
 ### Added
