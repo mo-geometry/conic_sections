@@ -52,6 +52,7 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.4",
     "mypy>=1.10",
+    "numpy<2.2",
     "pre-commit>=3.7",
 ]
 
@@ -98,7 +99,7 @@ select = [
 known-first-party = ["conic_sections"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
@@ -121,10 +122,6 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "conic_sections.__main__"
 disallow_untyped_calls = false
-
-[[tool.mypy.overrides]]
-module = "tests.*"
-disallow_untyped_decorators = false
 
 [tool.pyright]
 pythonVersion = "3.11"

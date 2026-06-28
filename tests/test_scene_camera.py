@@ -133,8 +133,8 @@ class TestSceneCameraFPSControls:
         cam.move(strafe=1.0)
         assert cam.position[0] > 0.0
 
-    def test_move_fast_doubles_speed(self) -> None:
-        """Fast flag should double the movement distance."""
+    def test_move_fast_increases_speed(self) -> None:
+        """Fast flag should increase the movement distance (2.5x: 0.25/0.1)."""
         cam_normal = SceneCamera(
             position=np.array([0.0, 0.0, 0.0], dtype=np.float64),
             rotation_euler=np.array([0.0, 0.0, 0.0], dtype=np.float64),
@@ -145,7 +145,7 @@ class TestSceneCameraFPSControls:
         )
         cam_normal.move(forward=1.0, fast=False)
         cam_fast.move(forward=1.0, fast=True)
-        np.testing.assert_allclose(cam_fast.position[2], 2.0 * cam_normal.position[2])
+        np.testing.assert_allclose(cam_fast.position[2], 2.5 * cam_normal.position[2])
 
     def test_scroll_zoom(self) -> None:
         """Scroll should change FOV."""
