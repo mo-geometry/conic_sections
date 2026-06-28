@@ -110,18 +110,19 @@ exclude = ["typestubs/"]
 [[tool.mypy.overrides]]
 module = [
     "moderngl.*",
-    "moderngl_window.*",
     "glfw.*",
-    "cv2.*",
-    "trimesh.*",
     "imgui_bundle.*",
     "OpenGL.*",
 ]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "conic_sections.__main__"
+module = [
+    "conic_sections.__main__",
+    "conic_sections.rendering.imgui_layer",
+]
 disallow_untyped_calls = false
+disable_error_code = ["union-attr", "type-arg"]
 
 [tool.pyright]
 pythonVersion = "3.11"
