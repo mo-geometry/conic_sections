@@ -56,3 +56,7 @@ imgui.ini
 *.fbx
 !tests/fixtures/**/*.obj
 !tests/fixtures/**/*.glb
+
+# Study plans & homework (private)
+*.xlsx
+homework/
